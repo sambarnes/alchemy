@@ -1,4 +1,5 @@
 click
 factom-api
 factom-keys
+numpy
 plyvel
