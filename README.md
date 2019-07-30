@@ -6,7 +6,11 @@ An alternative utility for interacting with the PegNet.
 
 ## Features
 - Burn FCT for pFCT
-- Get FCT, pFCT, PNT balances
+- Get FCT, pFCT, and PNT balances (well... all of them really, but they're still 0 :D)
+
+## Prerequisites
+- Make sure to have a LXR map generated already, 
+- Install the [pylxr](https://github.com/pegnet/pylxr) module to your python virtual environment 
 
 ## Usage
 *(Note: all commands currently assume locally running factomd and factom-walletd instances)*
@@ -83,6 +87,6 @@ $ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
   "pDCR": 0,
   "pGBP": 0,
   "FCT": 39779.90816,
-  "PNT": 0
+  "PNT": 60000,
 }
 ```
