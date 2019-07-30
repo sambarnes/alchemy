@@ -6,7 +6,7 @@ An alternative utility for interacting with the PegNet.
 
 ## Features
 - Burn FCT for pFCT
-- Get FCT and pFCT balances
+- Get FCT, pFCT, PNT balances
 
 ## Usage
 *(Note: all commands currently assume locally running factomd and factom-walletd instances)*
