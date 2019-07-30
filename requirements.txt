@@ -1,3 +1,4 @@
 click
 factom-api
+factom-keys
 plyvel

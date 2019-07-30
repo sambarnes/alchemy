@@ -1,10 +1,15 @@
 #!/usr/bin/env python3.7
 
 import click
-import consts
 import factom.exceptions
 import json
+import numpy as np
+import pylxr
 from factom import Factomd, FactomWalletd
+
+import consts
+from opr import OPR
+
 
 HEADER = r"""
       o       
@@ -82,10 +87,44 @@ def get_balances(address, testnet):
             burn_amount = inputs[0].get("amount", 0)
             factoshis_burned += burn_amount
         height += 1
-
-    # TODO: Parse OPR Chain for PNT rewards
-
     balances[f"{network_ticker}FCT"] = factoshis_burned / consts.FACTOSHIS_PER_FCT
+
+    # Parse OPR Chain for PNT rewards
+    # Sort by self reported difficulty as we go
+    entries = factomd.read_chain(consts.OPR_CHAIN_ID, include_entry_context=True)
+    lxr = pylxr.LXR(map_size_bits=30)
+    opr_blocks = {}
+    current_block_oprs = []
+    current_height = 0
+    for e in reversed(entries):
+        if current_height != e['dbheight']:
+            if 10 <= len(current_block_oprs):
+                current_block_oprs.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
+                opr_blocks[current_height] = current_block_oprs
+                current_block_oprs = []
+            current_height = e['dbheight']
+
+        # Check if it's a valid OPR
+        # If so, compute it's hash and append to current block OPRs
+        entry_hash = bytes.fromhex(e.get('entryhash'))
+        external_ids = e.get('extids')
+        content = e.get("content")
+        opr = OPR.from_entry(entry_hash, external_ids, content)
+        if opr is None:
+            continue
+        opr.opr_hash = lxr.h(content)
+        current_block_oprs.append(opr)
+    if 10 <= len(current_block_oprs):
+        current_block_oprs.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
+        opr_blocks[current_height] = current_block_oprs
+
+    # Grade block by block
+    previous_winners = []
+    for height, oprs in opr_blocks.items():
+        for o in oprs:
+            difficulty = lxr.h(o.opr_hash + o.nonce)[:8]
+            print(o.height, o.self_reported_difficulty.hex(), difficulty.hex())
+
     print(json.dumps(balances))
 
 

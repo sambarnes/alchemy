@@ -30,6 +30,7 @@ CURRENCY_ASSETS = {
 }
 COMMODITY_ASSETS = {"XAU", "XAG", "XPD", "XPT"}
 CRYPTO_ASSETS = {
+    PNT,
     "XBT",
     "ETH",
     "LTC",
