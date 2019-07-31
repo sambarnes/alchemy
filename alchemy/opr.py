@@ -1,13 +1,13 @@
 import factom_keys.fct
 import json
-import math
+import numpy as np
 from dataclasses import dataclass
 from typing import Dict, List
 
 import consts
 
 
-AssetEstimates = Dict[str, float]
+AssetEstimates = Dict[str, np.float64]
 
 
 @dataclass
@@ -16,22 +16,22 @@ class OPR:
     nonce: bytes
     self_reported_difficulty: bytes
     coinbase_address: str
-    height: str
+    height: int
     asset_estimates: AssetEstimates
     prev_winners: List[str]
     miner_id: str
 
-    grade: float = math.inf
+    grade: np.float64 = np.inf
     opr_hash: bytes = bytes(32)
 
     def calculate_grade(self, averages: AssetEstimates):
-        self.grade = 0
+        self.grade = np.float64(0)
         for k, v in self.asset_estimates.items():
             if averages[k] > 0:
                 # compute the difference from the average
                 d = (v - averages[k]) / averages[k]
                 # the grade is the sum of the square of the square of the differences
-                self.grade = self.grade + d * d * d * d
+                self.grade += np.float64(d * d * d * d)
 
     @classmethod
     def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes):

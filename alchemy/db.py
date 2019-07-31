@@ -5,7 +5,8 @@ import struct
 from typing import Dict, List, Union
 
 
-HEIGHT = b"Height"
+OPR_HEAD = b"OPRHead"
+FACTOID_HEAD = b"FactoidHead"
 BALANCES = b"Balances"
 WINNERS = b"Winners"
 
@@ -29,13 +30,21 @@ class AlchemyDB:
     def close(self):
         self._db.close()
 
-    def get_height_completed(self) -> int:
-        height_bytes = self._db.get(HEIGHT)
+    def get_opr_head(self) -> int:
+        height_bytes = self._db.get(OPR_HEAD)
         return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
 
-    def put_height_completed(self, height: int):
+    def put_opr_head(self, height: int):
         height_bytes = struct.pack(">I", height)
-        self._db.put(HEIGHT, height_bytes)
+        self._db.put(OPR_HEAD, height_bytes)
+
+    def get_factoid_head(self) -> int:
+        height_bytes = self._db.get(FACTOID_HEAD)
+        return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
+
+    def put_factoid_head(self, height: int):
+        height_bytes = struct.pack(">I", height)
+        self._db.put(FACTOID_HEAD, height_bytes)
 
     def get_balances(self, address: bytes):
         sub_db = self._db.prefixed_db(BALANCES)

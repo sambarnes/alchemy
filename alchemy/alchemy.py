@@ -4,7 +4,6 @@ import click
 import factom
 import json
 import pylxr
-from collections import defaultdict
 from factom import Factomd, FactomWalletd
 from typing import Dict, List
 
@@ -33,59 +32,19 @@ def main():
     pass
 
 
-def read_chain_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False):
-    entries = []
-    keymr = factomd.chain_head(chain_id)['chainhead']
-    lowest_height = None
-    while keymr != factom.client.NULL_BLOCK:
-        block = factomd.entry_block(keymr)
-        current_height = block['header']['dbheight']
-        if current_height < height:
-            break
-        lowest_height = current_height
-        for entry_pointer in reversed(block['entrylist']):
-            entry = factomd.entry(entry_pointer['entryhash'])
-            if include_entry_context:
-                entry['entryhash'] = entry_pointer['entryhash']
-                entry['timestamp'] = entry_pointer['timestamp']
-                entry['dbheight'] = current_height
-            entries.append(entry)
-        keymr = block['header']['prevkeymr']
-    return entries, lowest_height
-
-
 @main.command()
 def run():
     """Main entry point for the node"""
     print(HEADER)
-    database = db.AlchemyDB(create_if_missing=True)
+
     factomd = Factomd()
     lxr = pylxr.LXR(map_size_bits=30)
+    database = db.AlchemyDB(create_if_missing=True)
 
     latest_block = factomd.heights()['directoryblockheight']
-    height_previously_completed = database.get_height_completed()
-    if height_previously_completed == -1:
-        previous_winners = ["" for _ in range(10)]
-    else:
-        previous_winners_full = database.get_winners(height_previously_completed)
-        previous_winners = [h[:8].hex() for h in previous_winners_full]
-
     print(f"Current Factom block height: {latest_block}")
-    print(f"Highest parsed block: {height_previously_completed}")
-    entries, start_height = read_chain_from_height(factomd, consts.OPR_CHAIN_ID, height_previously_completed + 1, True)
-    if len(entries) == 0:
-        print("Entire chain has been parsed")
-        return
-    print(f"Starting at block {start_height}")
 
-    winners_by_height = grading.grade_entries(lxr, previous_winners, entries)
-    pnt_deltas = defaultdict(float)
-    for height, winners in winners_by_height.items():
-        for i, record in enumerate(winners):
-            print(height, i, record.entry_hash[:8].hex())
-            pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
-
-    print(json.dumps(pnt_deltas))
+    grading.run(factomd, lxr, database)
 
 
 @main.command()
