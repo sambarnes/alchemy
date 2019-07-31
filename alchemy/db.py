@@ -61,7 +61,9 @@ class AlchemyDB:
         if balances is not None:
             for k, v in deltas.items():
                 balances[k] += v
-        self.put_balances(address, balances)
+            self.put_balances(address, balances)
+        else:
+            self.put_balances(address, deltas)
 
     def get_winners(self, height: int):
         sub_db = self._db.prefixed_db(WINNERS)

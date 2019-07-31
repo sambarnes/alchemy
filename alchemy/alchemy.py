@@ -4,9 +4,10 @@ import click
 import factom
 import json
 import pylxr
+from factom_keys.fct import FactoidAddress
 from factom import Factomd, FactomWalletd
-from typing import Dict, List
 
+import burning
 import consts
 import db
 import grading
@@ -53,47 +54,21 @@ def run():
 def get_balances(address, testnet):
     """Get a list of all balances for the given address"""
     factomd = Factomd()
+    database = db.AlchemyDB(create_if_missing=True)
     try:
         fct_balance = factomd.factoid_balance(address).get("balance")
-        fct_balance = fct_balance / consts.FACTOSHIS_PER_FCT
     except factom.exceptions.InvalidParams:
         print("Invalid Address")
         return
-    network_ticker = "p" if not testnet else "t"
-    balances = {f"{network_ticker}{ticker}": 0 for ticker in consts.ALL_PEGGED_ASSETS}
+
+    # Run through the latest factoid blocks for new burns
+    burning.run(factomd, database, testnet)
+    address_bytes = FactoidAddress(address_string=address).rcd_hash
+    balances = database.get_balances(address_bytes)
+    if balances is None:
+        network_ticker = "p" if not testnet else "t"
+        balances = {f"{network_ticker}{ticker}": 0 for ticker in consts.ALL_PEGGED_ASSETS}
     balances["FCT"] = fct_balance
-    balances[consts.PNT] = 0
-
-    # Parse Factoid Blocks looking for matching FCT burn transactions
-    height = consts.START_HEIGHT
-    expected_burn_address = consts.BurnAddresses.MAINNET.value if not testnet else consts.BurnAddresses.TESTNET.value
-    factoshis_burned = 0
-    while True:
-        try:
-            factoid_block = factomd.factoid_block_by_height(height)["fblock"]
-        except factom.exceptions.BlockNotFound:
-            break
-        transactions = factoid_block["transactions"]
-        for tx in transactions:
-            inputs = tx.get("inputs")
-            outputs = tx.get("outputs")
-            ec_outputs = tx.get("outecs")
-            if len(inputs) != 1 or len(outputs) != 0 or len(ec_outputs) != 1:
-                continue
-
-            user_address = inputs[0].get("useraddress")
-            if user_address != address:
-                continue
-
-            ec_address = ec_outputs[0].get("useraddress")
-            if ec_address != expected_burn_address:
-                continue
-
-            # Successful burn, update the balance
-            burn_amount = inputs[0].get("amount", 0)
-            factoshis_burned += burn_amount
-        height += 1
-    balances[f"{network_ticker}FCT"] = factoshis_burned / consts.FACTOSHIS_PER_FCT
     print(json.dumps(balances))
 
 
