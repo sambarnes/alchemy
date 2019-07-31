@@ -83,22 +83,3 @@ class OPR:
             prev_winners=prev_winners,
             miner_id=miner_id,
         )
-
-
-def average_estimates(oprs: List[OPR]) -> AssetEstimates:
-    """Computes the average answer for the price of each token reported"""
-    averages: AssetEstimates = {k: 0 for k in consts.ALL_PEGGED_ASSETS}
-    # Sum up all the prices
-    for opr in oprs:
-        for k, v in opr.asset_estimates.items():
-            # Make sure no OPR has negative values for assets.  Simply treat all values as positive.
-            averages[k] += abs(v)
-    # Then divide the prices by the number of OraclePriceRecord records.  Two steps is actually faster
-    # than doing everything in one loop (one divide for every asset rather than one divide
-    # for every asset * number of OraclePriceRecords)  There is also a little bit of a precision advantage
-    # with the two loops (fewer divisions usually does help with precision) but that isn't likely to be
-    # interesting here.
-    oprs_length = float(len(oprs))
-    for i in averages:
-        averages[i] = averages[i] / oprs_length
-    return averages
