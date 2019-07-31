@@ -62,29 +62,29 @@ def run():
     factomd = Factomd()
     lxr = pylxr.LXR(map_size_bits=30)
 
+    latest_block = factomd.heights()['directoryblockheight']
     height_previously_completed = database.get_height_completed()
-    entries, start_height = read_chain_from_height(factomd, consts.OPR_CHAIN_ID, height_previously_completed + 1, True)
     if height_previously_completed == -1:
         previous_winners = ["" for _ in range(10)]
     else:
         previous_winners_full = database.get_winners(height_previously_completed)
         previous_winners = [h[:8].hex() for h in previous_winners_full]
 
+    print(f"Current Factom block height: {latest_block}")
     print(f"Highest parsed block: {height_previously_completed}")
-    print(f"Entries to parse: {len(entries)}")
+    entries, start_height = read_chain_from_height(factomd, consts.OPR_CHAIN_ID, height_previously_completed + 1, True)
     if len(entries) == 0:
         print("Entire chain has been parsed")
         return
     print(f"Starting at block {start_height}")
 
-    final_height, winners_by_height = grading.grade_entries(lxr, previous_winners, entries)
+    winners_by_height = grading.grade_entries(lxr, previous_winners, entries)
     pnt_deltas = defaultdict(float)
     for height, winners in winners_by_height.items():
         for i, record in enumerate(winners):
+            print(height, i, record.entry_hash[:8].hex())
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
 
-    if final_height > height_previously_completed:
-        database.put_height_completed(final_height)
     print(json.dumps(pnt_deltas))
 
 
