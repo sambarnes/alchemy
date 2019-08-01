@@ -116,5 +116,19 @@ def burn(fct_address, amount, testnet, dry_run):
     walletd.delete_transaction(tx_name)
 
 
+@main.command()
+@click.argument("height", type=int)
+@click.option("--testnet", is_flag=True)
+def get_winners(height, testnet):
+    """Get winning records at the given block height"""
+    database = db.AlchemyDB(testnet, create_if_missing=True)
+    winning_entry_hashes = database.get_winners(height)
+    winners = [
+        {"place": i + 1, "entry_hash": entry_hash.hex()}
+        for i, entry_hash in enumerate(winning_entry_hashes)
+    ] if len(winning_entry_hashes) != 0 else None
+    print(json.dumps({"winners": winners}))
+
+
 if __name__ == "__main__":
     main()

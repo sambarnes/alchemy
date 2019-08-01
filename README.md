@@ -5,8 +5,9 @@ An alternative utility for interacting with the PegNet.
 **Kinda ugly, very alpha. Use at your own risk.**
 
 ## Features
-- Burn FCT for pFCT
-- Get FCT, pFCT, and PNT balances (well... all of them really, but they're still 0 :D)
+- Grades all OPR records and validates factoid burns
+- Create burn transactions (FCT --> pFCT)
+- Get FCT, pFCT, and PNT balances
 
 ## Prerequisites
 - Make sure to have a LXR map generated already, it'll take far far too long for the naive python implementation to generate it
@@ -24,7 +25,8 @@ Options:
 Commands:
   burn          Burn FCT for pFCT
   get-balances  Get a list of all balances for the given address
-  run           Main entry point for the node, grades mining records and finds factoid burns
+  get-winners   Get winning records at the given block height
+  run           Main entry point for the node
 ```
 
 ### Running the Grader
@@ -85,44 +87,68 @@ Tx: {"jsonrpc": "2.0", "id": 15, "params": {"transaction": "02016c40e7777d010001
 The above transaction was not sent.
 ```
 
+
 ### Checking current balances
 Currently only FCT, pFCT, and PNT are supported:
 ```
 $ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q | jq
 
 {
-  "pINR": 0,
-  "pCNY": 0,
-  "pXAG": 0,
-  "pMXN": 0,
-  "pXBC": 0,
-  "pPHP": 0,
   "pFCT": 120,
-  "pHKD": 0,
-  "pDASH": 0,
-  "pRVN": 0,
-  "pCHF": 0,
-  "pXPD": 0,
-  "pETH": 0,
-  "pBNB": 0,
-  "pXAU": 0,
-  "pZEC": 0,
-  "pUSD": 0,
-  "pXBT": 0,
-  "pBRL": 0,
-  "pLTC": 0,
-  "pKRW": 0,
-  "pXPT": 0,
-  "pSGD": 0,
-  "pADA": 0,
-  "pXMR": 0,
-  "pJPY": 0,
-  "pEUR": 0,
-  "pCAD": 0,
-  "pXLM": 0,
-  "pDCR": 0,
-  "pGBP": 0,
   "FCT": 39779.90816,
   "PNT": 60000,
+}
+```
+
+
+### Get winning records of a block
+Returns a list of entry hashes for the winners of the given block height
+
+Example:
+```
+$ ./alchemy.py get-winners 76 | jq
+{
+  "winners": [
+    {
+      "place": 1,
+      "entry_hash": "82426bf90f76c69cdf7d3fb877aed7fd2b5f7c823b400791927827d59a29b2c7"
+    },
+    {
+      "place": 2,
+      "entry_hash": "e7b511c78cd080d45e8d3c4bb8e419bcb8d2840bc8d4cb7f41acf9797cea0ece"
+    },
+    {
+      "place": 3,
+      "entry_hash": "ae4f73fe65e0a7e8f4cfcec54ea02bbdeff84b50a5fd0d8e748a8d4e24ef7219"
+    },
+    {
+      "place": 4,
+      "entry_hash": "547bcd4bfd08468642fa0472cd8f1a244859f74e0288f4354eb444abfd9d6375"
+    },
+    {
+      "place": 5,
+      "entry_hash": "3e363b762d258a6dd1b3810ac826fe3a2dca418506f36fcefc6e391cdff816bb"
+    },
+    {
+      "place": 6,
+      "entry_hash": "a38ca5cd6cc27db2038f1634f42defe9068727ee780e40df37b74247eaf9d42a"
+    },
+    {
+      "place": 7,
+      "entry_hash": "ca8335119520a986ba73fe18ff3d16bbca3772623f0a8a198aaf6f32e7e89096"
+    },
+    {
+      "place": 8,
+      "entry_hash": "818b97a31388b9e51d3970cbf8cba934831c4c94eda1c756e92bb08fd87079ad"
+    },
+    {
+      "place": 9,
+      "entry_hash": "78fd2d597c9f6bc72b99af2e774753bb900ece7e7ba3defef184dfb0f022e18e"
+    },
+    {
+      "place": 10,
+      "entry_hash": "538add19330dfd6e11b622e309bf8c79d14152bc6a57bd798c92dee48f841200"
+    }
+  ]
 }
 ```

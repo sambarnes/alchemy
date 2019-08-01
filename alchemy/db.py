@@ -68,7 +68,7 @@ class AlchemyDB:
         sub_db = self._db.prefixed_db(WINNERS)
         height_bytes = struct.pack(">I", height)
         winners_bytes = sub_db.get(height_bytes)
-        return [] if winners_bytes is None else [winners_bytes[i : i + 32] for i in range(0, 10, 32)]
+        return [] if winners_bytes is None else [winners_bytes[i: i + 32] for i in range(0, 10 * 32, 32)]
 
     def put_winners(self, height: int, winners: List[bytes]):
         sub_db = self._db.prefixed_db(WINNERS)
