@@ -9,7 +9,7 @@ An alternative utility for interacting with the PegNet.
 - Get FCT, pFCT, and PNT balances (well... all of them really, but they're still 0 :D)
 
 ## Prerequisites
-- Make sure to have a LXR map generated already, 
+- Make sure to have a LXR map generated already, it'll take far far too long for the naive python implementation to generate it
 - Install the [pylxr](https://github.com/pegnet/pylxr) module to your python virtual environment 
 
 ## Usage
@@ -24,7 +24,43 @@ Options:
 Commands:
   burn          Burn FCT for pFCT
   get-balances  Get a list of all balances for the given address
-  run           Main entry point for the node
+  run           Main entry point for the node, grades mining records and finds factoid burns
+```
+
+### Running the Grader
+This command will grade all unseen oracle price records and run through all unseen Factoid Blocks looking for burn transactions. Stores results in a database to save progress and make subsequent runs quicker.
+
+Example:
+```
+$ ./alchemy.py run
+
+      o
+       o
+     ___
+     | |
+     | |
+     |o|             _      _
+    .' '.       __ _| | ___| |__   ___ _ __ ___  _   _
+   /  o  \     / _` | |/ __| '_ \ / _ \ '_ ` _ \| | | |
+  :____o__:   | (_| | | (__| | | |  __/ | | | | | |_| |
+  '._____.'    \__,_|_|\___|_| |_|\___|_| |_| |_|\__, |
+                                                 |___/
+
+Current Factom block height: 218
+
+Highest OPR Entry Block previously parsed: 167
+Finished grading all unseen blocks
+Updating database...
+
+Highest Factoid Block previously parsed: 213
+Finding burn transactions in factoid block 214...
+Finding burn transactions in factoid block 215...
+Finding burn transactions in factoid block 216...
+Finding burn transactions in factoid block 217...
+Finding burn transactions in factoid block 218...
+Updating database...
+
+Done.
 ```
 
 ### Burning FCT for pFCT
@@ -50,7 +86,7 @@ The above transaction was not sent.
 ```
 
 ### Checking current balances
-Currently only FCT and pFCT are supported:
+Currently only FCT, pFCT, and PNT are supported:
 ```
 $ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q | jq
 

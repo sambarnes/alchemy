@@ -1,14 +1,16 @@
 #!/usr/bin/env python3.7
 
 import click
-import factom.exceptions
+import factom
 import json
 import pylxr
+from factom_keys.fct import FactoidAddress
 from factom import Factomd, FactomWalletd
-from typing import Dict, List
 
+import burning
 import consts
-from opr import OPR, average_estimates
+import db
+import grading
 
 
 HEADER = r"""
@@ -32,9 +34,21 @@ def main():
 
 
 @main.command()
-def run():
+@click.option("--testnet", is_flag=True)
+def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
+
+    factomd = Factomd()
+    lxr = pylxr.LXR(map_size_bits=30)
+    database = db.AlchemyDB(testnet, create_if_missing=True)
+
+    latest_block = factomd.heights()["directoryblockheight"]
+    print(f"Current Factom block height: {latest_block}")
+
+    grading.run(factomd, lxr, database, testnet)
+    burning.find_new_burns(factomd, database, testnet)
+    print("\nDone.")
 
 
 @main.command()
@@ -43,118 +57,19 @@ def run():
 def get_balances(address, testnet):
     """Get a list of all balances for the given address"""
     factomd = Factomd()
+    database = db.AlchemyDB(testnet, create_if_missing=True)
     try:
         fct_balance = factomd.factoid_balance(address).get("balance")
-        fct_balance = fct_balance / consts.FACTOSHIS_PER_FCT
     except factom.exceptions.InvalidParams:
         print("Invalid Address")
         return
-    network_ticker = "p" if not testnet else "t"
-    balances = {f"{network_ticker}{ticker}": 0 for ticker in consts.ALL_PEGGED_ASSETS}
+
+    address_bytes = FactoidAddress(address_string=address).rcd_hash
+    balances = database.get_balances(address_bytes)
+    if balances is None:
+        balances = {}
     balances["FCT"] = fct_balance
-    balances[consts.PNT] = 0
-
-    # Parse Factoid Blocks looking for matching FCT burn transactions
-    height = consts.START_HEIGHT
-    expected_burn_address = consts.BurnAddresses.MAINNET.value if not testnet else consts.BurnAddresses.TESTNET.value
-    factoshis_burned = 0
-    while True:
-        try:
-            factoid_block = factomd.factoid_block_by_height(height)["fblock"]
-        except factom.exceptions.BlockNotFound:
-            break
-        transactions = factoid_block["transactions"]
-        for tx in transactions:
-            inputs = tx.get("inputs")
-            outputs = tx.get("outputs")
-            ec_outputs = tx.get("outecs")
-            if len(inputs) != 1 or len(outputs) != 0 or len(ec_outputs) != 1:
-                continue
-
-            user_address = inputs[0].get("useraddress")
-            if user_address != address:
-                continue
-
-            ec_address = ec_outputs[0].get("useraddress")
-            if ec_address != expected_burn_address:
-                continue
-
-            # Successful burn, update the balance
-            burn_amount = inputs[0].get("amount", 0)
-            factoshis_burned += burn_amount
-        height += 1
-    balances[f"{network_ticker}FCT"] = factoshis_burned / consts.FACTOSHIS_PER_FCT
-
-    # Parse OPR Chain for PNT rewards
-    # Sort by self reported difficulty as we go
-    entries = factomd.read_chain(consts.OPR_CHAIN_ID, include_entry_context=True)
-    lxr = pylxr.LXR(map_size_bits=30)
-    opr_blocks = {}
-    current_block_oprs: List[OPR] = []
-    current_height = 0
-    pnt_rewards = 0
-    for e in reversed(entries):
-        if current_height != e["dbheight"]:
-            if 10 <= len(current_block_oprs):
-                current_block_oprs.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-                opr_blocks[current_height] = current_block_oprs
-                current_block_oprs = []
-            current_height = e["dbheight"]
-
-        # Check if it's a valid OPR
-        # If so, compute it's hash and append to current block OPRs
-        entry_hash = bytes.fromhex(e.get("entryhash"))
-        external_ids = e.get("extids")
-        content = e.get("content")
-        opr = OPR.from_entry(entry_hash, external_ids, content)
-        if opr is None:
-            continue
-        opr.opr_hash = lxr.h(content)
-        current_block_oprs.append(opr)
-    if 10 <= len(current_block_oprs):
-        current_block_oprs.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-        opr_blocks[current_height] = current_block_oprs
-
-    # Grade block by block
-    previous_winners = ["" for _ in range(10)]
-    for height, oprs in opr_blocks.items():
-        valid_oprs: List[OPR] = []
-        for o in oprs:
-            difficulty = lxr.h(o.opr_hash + o.nonce)[:8]
-            if difficulty != o.self_reported_difficulty != difficulty:
-                print(f"Dishonest OPR difficulty reported at entry: {o.entry_hash}")
-                continue
-            if o.prev_winners != previous_winners:
-                continue
-            valid_oprs.append(o)
-            if 50 <= len(valid_oprs):
-                break  # Found max number of honest submissions, go grade them
-
-        if len(valid_oprs) < 10:
-            continue  # Must have at least 10 valid submissions to grade them
-
-        # TODO: opr.RemoveDuplicateSubmissions().
-        #       Technically not needed, but should match reference implementation
-
-        # Calculate grade
-        for i in range(len(valid_oprs) - 1, -1, -1):
-            if i < 10:
-                break
-            averages = average_estimates(valid_oprs[:i])
-            for j in range(i):
-                valid_oprs[j].calculate_grade(averages)
-            valid_oprs.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-            valid_oprs.sort(key=lambda x: x.grade)
-
-        # Set the previous winners and look for PNT Rewards
-        previous_winners = []
-        for i, o in enumerate(valid_oprs[:10]):
-            previous_winners.append(o.entry_hash[:8].hex())
-            if o.coinbase_address == address:
-                pnt_rewards += consts.BLOCK_REWARDS.get(i, 0)
-
-    balances[consts.PNT] = pnt_rewards
-    print(json.dumps(balances))
+    print(json.dumps({"balances": balances}))
 
 
 @main.command()
