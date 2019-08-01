@@ -24,15 +24,6 @@ class OPR:
     grade: np.float64 = np.inf
     opr_hash: bytes = bytes(32)
 
-    def calculate_grade(self, averages: AssetEstimates):
-        self.grade = np.float64(0)
-        for k, v in self.asset_estimates.items():
-            if averages[k] > 0:
-                # compute the difference from the average
-                d = (v - averages[k]) / averages[k]
-                # the grade is the sum of the square of the square of the differences
-                self.grade += np.float64(d * d * d * d)
-
     @classmethod
     def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes):
         if len(external_ids) != 2:

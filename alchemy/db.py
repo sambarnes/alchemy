@@ -14,15 +14,11 @@ BalanceMap = Dict[str, float]
 
 
 class AlchemyDB:
-    def __init__(self, path: str = None, **kwargs):
-        """
-        An alchemy specific wrapper around level-db
-
-        :param path: file-path to the leveldb database, defaults to: /$HOME/.pegnet/alchemy/data/
-        """
-        if path is None:
-            home = os.getenv("HOME")
-            path = f"{home}/.pegnet/alchemy/data/"
+    def __init__(self, is_testnet: bool = False, **kwargs):
+        """An alchemy specific wrapper around level-db"""
+        home = os.getenv("HOME")
+        data_dir = "data" if not is_testnet else "data-testnet"
+        path = f"{home}/.pegnet/alchemy/{data_dir}/"
         if not os.path.exists(path):
             os.makedirs(path)
         self._db = plyvel.DB(path, **kwargs)
@@ -60,7 +56,10 @@ class AlchemyDB:
         balances = self.get_balances(address)
         if balances is not None:
             for k, v in deltas.items():
-                balances[k] += v
+                if k in balances:
+                    balances[k] += v
+                else:
+                    balances[k] = v
             self.put_balances(address, balances)
         else:
             self.put_balances(address, deltas)
@@ -69,7 +68,7 @@ class AlchemyDB:
         sub_db = self._db.prefixed_db(WINNERS)
         height_bytes = struct.pack(">I", height)
         winners_bytes = sub_db.get(height_bytes)
-        return [] if winners_bytes is None else [winners_bytes[i:i+32] for i in range(0, 10, 32)]
+        return [] if winners_bytes is None else [winners_bytes[i : i + 32] for i in range(0, 10, 32)]
 
     def put_winners(self, height: int, winners: List[bytes]):
         sub_db = self._db.prefixed_db(WINNERS)

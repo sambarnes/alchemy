@@ -34,18 +34,21 @@ def main():
 
 
 @main.command()
-def run():
+@click.option("--testnet", is_flag=True)
+def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
 
     factomd = Factomd()
     lxr = pylxr.LXR(map_size_bits=30)
-    database = db.AlchemyDB(create_if_missing=True)
+    database = db.AlchemyDB(testnet, create_if_missing=True)
 
-    latest_block = factomd.heights()['directoryblockheight']
+    latest_block = factomd.heights()["directoryblockheight"]
     print(f"Current Factom block height: {latest_block}")
 
-    grading.run(factomd, lxr, database)
+    grading.run(factomd, lxr, database, testnet)
+    burning.find_new_burns(factomd, database, testnet)
+    print("\nDone.")
 
 
 @main.command()
@@ -54,22 +57,19 @@ def run():
 def get_balances(address, testnet):
     """Get a list of all balances for the given address"""
     factomd = Factomd()
-    database = db.AlchemyDB(create_if_missing=True)
+    database = db.AlchemyDB(testnet, create_if_missing=True)
     try:
         fct_balance = factomd.factoid_balance(address).get("balance")
     except factom.exceptions.InvalidParams:
         print("Invalid Address")
         return
 
-    # Run through the latest factoid blocks for new burns
-    burning.run(factomd, database, testnet)
     address_bytes = FactoidAddress(address_string=address).rcd_hash
     balances = database.get_balances(address_bytes)
     if balances is None:
-        network_ticker = "p" if not testnet else "t"
-        balances = {f"{network_ticker}{ticker}": 0 for ticker in consts.ALL_PEGGED_ASSETS}
+        balances = {}
     balances["FCT"] = fct_balance
-    print(json.dumps(balances))
+    print(json.dumps({"balances": balances}))
 
 
 @main.command()

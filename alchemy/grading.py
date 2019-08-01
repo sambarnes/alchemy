@@ -4,6 +4,7 @@ import numpy as np
 import pylxr
 from collections import defaultdict
 from factom import Factomd
+from factom_keys.fct import FactoidAddress
 from typing import Iterable, List
 
 import consts
@@ -11,10 +12,10 @@ import db
 from opr import OPR, AssetEstimates
 
 
-def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB):
+def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB, is_testnet: bool = False):
     # Initialize previous winners array
     height_last_parsed = database.get_opr_head()
-    print(f"Highest OPR block parsed: {height_last_parsed}")
+    print(f"\nHighest OPR Entry Block previously parsed: {height_last_parsed}")
     if height_last_parsed == -1:
         previous_winners = ["" for _ in range(10)]
     else:
@@ -26,7 +27,8 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB):
     top50_by_height = {}
     current_block_records = []
     current_height = 0
-    entries = get_entries_from_height(factomd, consts.OPR_CHAIN_ID, height_last_parsed + 1, True)
+    chain_id = consts.MAINNET_CHAIN_ID if not is_testnet else consts.TESTNET_CHAIN_ID
+    entries = get_entries_from_height(factomd, chain_id, height_last_parsed + 1, True)
     for e in entries:
         if current_height != e["dbheight"]:
             if 10 <= len(current_block_records):
@@ -38,6 +40,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB):
                     top50_by_height[current_height] = top50
             current_block_records = []
             current_height = e["dbheight"]
+            print(f"Grading records in block {current_height}...")
 
         # If it's a valid OPR, compute its hash and append to current block OPRs
         entry_hash = bytes.fromhex(e["entryhash"])
@@ -57,33 +60,41 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB):
             previous_winners = [record.entry_hash[:8].hex() for record in top50[:10]]
             top50_by_height[current_height] = top50
 
+    print("Finished grading all unseen blocks")
+    print("Updating database...")
     pnt_deltas = defaultdict(float)
+    top_height_graded = None
     for height, records in top50_by_height.items():
+        top_height_graded = height
+        winners = [record.entry_hash for record in records[:10]]
+        database.put_winners(height, winners)
         for i, record in enumerate(records):
-            print(height, i, record.entry_hash[:8].hex(), record.grade, record.self_reported_difficulty.hex())
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
-
-    print(json.dumps(pnt_deltas))
+    for address, delta in pnt_deltas.items():
+        address_bytes = FactoidAddress(address_string=address).rcd_hash
+        database.update_balances(address_bytes, {consts.PNT: delta})
+    if top_height_graded is not None:
+        database.put_opr_head(top_height_graded)
 
 
 def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False):
     entry_blocks = []
-    keymr = factomd.chain_head(chain_id)['chainhead']
+    keymr = factomd.chain_head(chain_id)["chainhead"]
     while keymr != factom.client.NULL_BLOCK:
         block = factomd.entry_block(keymr)
-        if block['header']['dbheight'] < height:
+        if block["header"]["dbheight"] < height:
             break
         entry_blocks.append(block)
-        keymr = block['header']['prevkeymr']
+        keymr = block["header"]["prevkeymr"]
 
     while len(entry_blocks) > 0:
         entry_block = entry_blocks.pop()
-        for entry_pointer in reversed(entry_block['entrylist']):
-            entry = factomd.entry(entry_pointer['entryhash'])
+        for entry_pointer in reversed(entry_block["entrylist"]):
+            entry = factomd.entry(entry_pointer["entryhash"])
             if include_entry_context:
-                entry['entryhash'] = entry_pointer['entryhash']
-                entry['timestamp'] = entry_pointer['timestamp']
-                entry['dbheight'] = entry_block['header']['dbheight']
+                entry["entryhash"] = entry_pointer["entryhash"]
+                entry["timestamp"] = entry_pointer["timestamp"]
+                entry["dbheight"] = entry_block["header"]["dbheight"]
             yield entry
 
 
@@ -113,9 +124,9 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
             break
         averages = average_estimates(valid_records[:i])
         for j in range(i):
-            valid_records[j].calculate_grade(averages)
-        valid_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-        valid_records.sort(key=lambda x: x.grade)
+            valid_records[j].grade = calculate_grade(valid_records[j].asset_estimates, averages)
+        valid_records[:i] = sorted(valid_records[:i], key=lambda x: x.self_reported_difficulty, reverse=True)
+        valid_records[:i] = sorted(valid_records[:i], key=lambda x: x.grade)
 
     return valid_records  # Return top 50 in graded order, top 10 are the winners
 
@@ -136,3 +147,14 @@ def average_estimates(records: List[OPR]) -> AssetEstimates:
     n_records = np.float64(len(records))
     averages = {k: v / n_records for k, v in averages.items()}
     return averages
+
+
+def calculate_grade(record_estimates: AssetEstimates, averages: AssetEstimates):
+    grade = np.float64(0)
+    for k, v in record_estimates.items():
+        if averages[k] > 0:
+            # compute the difference from the average
+            d = (v - averages[k]) / averages[k]
+            # the grade is the sum of the square of the square of the differences
+            grade += np.float64(d * d * d * d)
+    return grade
