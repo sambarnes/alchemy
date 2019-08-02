@@ -1,15 +1,14 @@
 #!/usr/bin/env python3.7
 
+import asyncio
 import click
 import factom
 import json
-import pylxr
 from factom_keys.fct import FactoidAddress
 from factom import Factomd, FactomWalletd
 
-import alchemy.burning
+import alchemy.main
 import alchemy.consts as consts
-import alchemy.grading
 from alchemy.db import AlchemyDB
 
 
@@ -38,17 +37,7 @@ def main():
 def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
-
-    factomd = Factomd()
-    lxr = pylxr.LXR(map_size_bits=30)
-    database = AlchemyDB(testnet, create_if_missing=True)
-
-    latest_block = factomd.heights()["directoryblockheight"]
-    print(f"Current Factom block height: {latest_block}")
-
-    alchemy.grading.run(factomd, lxr, database, testnet)
-    alchemy.burning.find_new_burns(factomd, database, testnet)
-    print("\nDone.")
+    asyncio.run(alchemy.main.run(testnet))
 
 
 @main.command()
@@ -95,7 +84,11 @@ def burn(amount, fct_address, testnet, dry_run):
     walletd = FactomWalletd()
     tx_name = "burn"
     factoshi_burn = int(amount * consts.FACTOSHIS_PER_FCT)
-    burn_address = consts.BurnAddresses.MAINNET.value if not testnet else consts.BurnAddresses.TESTNET.value
+    burn_address = (
+        consts.BurnAddresses.MAINNET.value
+        if not testnet
+        else consts.BurnAddresses.TESTNET.value
+    )
     print(f"Burning {amount} FCT from {fct_address} to {burn_address}...")
     try:
         walletd.delete_transaction(tx_name)
@@ -124,7 +117,10 @@ def get_winners(height, testnet):
     database = AlchemyDB(testnet, create_if_missing=True)
     winning_entry_hashes = database.get_winners(height)
     winners = (
-        [{"place": i + 1, "entry_hash": entry_hash.hex()} for i, entry_hash in enumerate(winning_entry_hashes)]
+        [
+            {"place": i + 1, "entry_hash": entry_hash.hex()}
+            for i, entry_hash in enumerate(winning_entry_hashes)
+        ]
         if len(winning_entry_hashes) != 0
         else None
     )

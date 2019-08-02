@@ -1,4 +1,5 @@
 click
+colorama
 factom-api
 factom-keys
 numpy

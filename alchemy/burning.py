@@ -7,7 +7,7 @@ import alchemy.consts as consts
 from alchemy.db import AlchemyDB
 
 
-def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = False) -> None:
+async def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = False) -> None:
     """Parse all unseen Factoid Blocks looking for FCT burn transactions"""
     height_last_parsed = database.get_factoid_head()
     print(f"\nHighest Factoid Block previously parsed: {height_last_parsed}")
@@ -21,7 +21,8 @@ def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = Fal
             factoid_block = factomd.factoid_block_by_height(height)["fblock"]
         except factom.exceptions.BlockNotFound:
             break
-        print(f"Finding burn transactions in factoid block {height}...")
+
+        burn_count = 0
         transactions = factoid_block["transactions"]
         for tx in transactions:
             inputs = tx.get("inputs")
@@ -39,10 +40,12 @@ def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = Fal
             this_account_deltas = all_account_deltas.get(address, defaultdict(float))
             this_account_deltas[f"{network_ticker}FCT"] += burn_amount
             all_account_deltas[address] = this_account_deltas
+            burn_count += 1
 
+        print(f"Parsed factoid block {height} (burns found: {burn_count})")
         height += 1
 
-    print("Updating database...")
+    print("Updating FCT burn database...")
     database.put_factoid_head(height - 1)  # Last block was not found, use height-1\
     for address, deltas in all_account_deltas.items():
         database.update_balances(address, deltas)

@@ -1,3 +1,4 @@
+from colorama import Fore as color
 import factom
 import json
 import numpy as np
@@ -12,7 +13,7 @@ from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
 
-def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
+async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
     """Grades all unseen entry blocks for the OPR chain, caches results when done"""
     # Initialize previous winners array
     height_last_parsed = database.get_opr_head()
@@ -39,9 +40,11 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
                 if top50 is not None:
                     previous_winners = [record.entry_hash[:8].hex() for record in top50[:10]]
                     top50_by_height[current_height] = top50
+                    print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
+                else:
+                    print(f"{color.RED}Skipped OPR block {current_height}{color.RESET}")
             current_block_records = []
             current_height = e["dbheight"]
-            print(f"Grading records in block {current_height}...")
 
         # If it's a valid OPR, compute its hash and append to current block OPRs
         entry_hash = bytes.fromhex(e["entryhash"])
@@ -60,9 +63,12 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
         if top50 is not None:
             previous_winners = [record.entry_hash[:8].hex() for record in top50[:10]]
             top50_by_height[current_height] = top50
+            print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
+        else:
+            print(f"{color.RED}Skipped OPR block {current_height}{color.RESET}")
 
     print("Finished grading all unseen blocks")
-    print("Updating database...")
+    print("Updating OPR database...")
     pnt_deltas = defaultdict(float)
     top_height_graded = None
     for height, records in top50_by_height.items():
