@@ -27,7 +27,7 @@ async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet:
     # Collect all sane entries in each block, sorting by self reported difficulty as we go
     top50_by_height = {}
     current_block_records = []
-    current_height = 0
+    current_height = height_last_parsed
     chain_id = consts.MAINNET_CHAIN_ID if not is_testnet else consts.TESTNET_CHAIN_ID
     entries = get_entries_from_height(factomd, chain_id, height_last_parsed + 1, True)
     for e in entries:
@@ -41,7 +41,9 @@ async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet:
                     top50_by_height[current_height] = top50
                     print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
                 else:
-                    print(f"{color.RED}Skipped OPR block {current_height}{color.RESET}")
+                    print(f"{color.RED}Skipped OPR block {current_height} (<10 records passed grading){color.RESET}")
+            elif current_height != height_last_parsed:
+                print(f"{color.RED}Skipped OPR block {current_height} (<10 records eligible for grading){color.RESET}")
             current_block_records = []
             current_height = e["dbheight"]
 
@@ -64,14 +66,14 @@ async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet:
             top50_by_height[current_height] = top50
             print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
         else:
-            print(f"{color.RED}Skipped OPR block {current_height}{color.RESET}")
+            print(f"{color.RED}Skipped OPR block {current_height} (<10 records passed grading){color.RESET}")
+    elif current_height != height_last_parsed:
+        print(f"{color.RED}Skipped OPR block {current_height} (<10 records eligible for grading){color.RESET}")
 
     print("Finished grading all unseen blocks")
     print("Updating OPR database...")
     pnt_deltas = defaultdict(float)
-    top_height_graded = None
     for height, records in top50_by_height.items():
-        top_height_graded = height
         winners = [record.entry_hash for record in records[:10]]
         database.put_winners(height, winners)
         for i, record in enumerate(records):
@@ -79,8 +81,8 @@ async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet:
     for address, delta in pnt_deltas.items():
         address_bytes = FactoidAddress(address_string=address).rcd_hash
         database.update_balances(address_bytes, {consts.PNT: delta})
-    if top_height_graded is not None:
-        database.put_opr_head(top_height_graded)
+    if height_last_parsed < current_height:
+        database.put_opr_head(current_height)
 
 
 def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False) -> list:
