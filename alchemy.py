@@ -7,10 +7,10 @@ import pylxr
 from factom_keys.fct import FactoidAddress
 from factom import Factomd, FactomWalletd
 
-import burning
-import consts
-import db
-import grading
+import alchemy.burning
+import alchemy.consts as consts
+import alchemy.grading
+from alchemy.db import AlchemyDB
 
 
 HEADER = r"""
@@ -41,13 +41,13 @@ def run(testnet):
 
     factomd = Factomd()
     lxr = pylxr.LXR(map_size_bits=30)
-    database = db.AlchemyDB(testnet, create_if_missing=True)
+    database = AlchemyDB(testnet, create_if_missing=True)
 
     latest_block = factomd.heights()["directoryblockheight"]
     print(f"Current Factom block height: {latest_block}")
 
-    grading.run(factomd, lxr, database, testnet)
-    burning.find_new_burns(factomd, database, testnet)
+    alchemy.grading.run(factomd, lxr, database, testnet)
+    alchemy.burning.find_new_burns(factomd, database, testnet)
     print("\nDone.")
 
 
@@ -57,7 +57,7 @@ def run(testnet):
 def get_balances(address, testnet):
     """Get a list of all balances for the given address"""
     factomd = Factomd()
-    database = db.AlchemyDB(testnet, create_if_missing=True)
+    database = AlchemyDB(testnet, create_if_missing=True)
     try:
         fct_balance = factomd.factoid_balance(address).get("balance")
     except factom.exceptions.InvalidParams:
@@ -121,12 +121,13 @@ def burn(fct_address, amount, testnet, dry_run):
 @click.option("--testnet", is_flag=True)
 def get_winners(height, testnet):
     """Get winning records at the given block height"""
-    database = db.AlchemyDB(testnet, create_if_missing=True)
+    database = AlchemyDB(testnet, create_if_missing=True)
     winning_entry_hashes = database.get_winners(height)
-    winners = [
-        {"place": i + 1, "entry_hash": entry_hash.hex()}
-        for i, entry_hash in enumerate(winning_entry_hashes)
-    ] if len(winning_entry_hashes) != 0 else None
+    winners = (
+        [{"place": i + 1, "entry_hash": entry_hash.hex()} for i, entry_hash in enumerate(winning_entry_hashes)]
+        if len(winning_entry_hashes) != 0
+        else None
+    )
     print(json.dumps({"winners": winners}))
 
 

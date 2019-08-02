@@ -3,11 +3,11 @@ from collections import defaultdict
 from factom import Factomd
 from typing import Dict
 
-import consts
-import db
+import alchemy.consts as consts
+from alchemy.db import AlchemyDB
 
 
-def find_new_burns(factomd: Factomd, database: db.AlchemyDB, is_testnet: bool = False):
+def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = False):
     """Parse all unseen Factoid Blocks looking for FCT burn transactions"""
     height_last_parsed = database.get_factoid_head()
     print(f"\nHighest Factoid Block previously parsed: {height_last_parsed}")

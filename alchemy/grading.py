@@ -7,12 +7,12 @@ from factom import Factomd
 from factom_keys.fct import FactoidAddress
 from typing import Iterable, List
 
-import consts
-import db
-from opr import OPR, AssetEstimates
+import alchemy.consts as consts
+from alchemy.db import AlchemyDB
+from alchemy.opr import OPR, AssetEstimates
 
 
-def run(factomd: Factomd, lxr: pylxr.LXR, database: db.AlchemyDB, is_testnet: bool = False):
+def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False):
     # Initialize previous winners array
     height_last_parsed = database.get_opr_head()
     print(f"\nHighest OPR Entry Block previously parsed: {height_last_parsed}")

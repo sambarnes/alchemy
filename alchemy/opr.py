@@ -4,7 +4,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Dict, List
 
-import consts
+import alchemy.consts as consts
 
 
 AssetEstimates = Dict[str, np.float64]
@@ -26,34 +26,42 @@ class OPR:
 
     @classmethod
     def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes):
+        if type(entry_hash) != bytes or len(entry_hash) != 32:
+            return None
         if len(external_ids) != 2:
             return None
         try:
-            d = json.loads(content.decode())
+            record_json = json.loads(content.decode())
         except ValueError:
             return None
 
         nonce = external_ids[0]
         self_reported_difficulty = external_ids[1]
-        coinbase = d.get("coinbase")
-        asset_estimates = d.get("assets")
-        height = d.get("dbht")
-        prev_winners = d.get("winners")
-        miner_id = d.get("minerid")
+        if type(nonce) != bytes or type(self_reported_difficulty) != bytes:
+            return None
 
-        # Basic type validation
+        coinbase = record_json.get("coinbase")
         if not factom_keys.fct.FactoidAddress.is_valid(coinbase):
             return None
-        if type(asset_estimates) != dict or type(height) != int or type(prev_winners) != list:
+
+        height = record_json.get("dbht")
+        if type(height) != int or height < 0:
             return None
+
+        miner_id = record_json.get("minerid")
         if type(miner_id) != str:
+            return None
+
+        prev_winners = record_json.get("winners")
+        if type(prev_winners) != list or len(prev_winners) != 10:
             return None
         for winner in prev_winners:
             if type(winner) != str:
                 return
 
         # Check that the OPR has all required assets (and no more)
-        if len(asset_estimates.keys()) != len(consts.ALL_PEGGED_ASSETS):
+        asset_estimates = record_json.get("assets")
+        if type(asset_estimates) != dict or len(asset_estimates.keys()) != len(consts.ALL_PEGGED_ASSETS):
             return None
         for k, v in asset_estimates.items():
             if type(k) != str or type(v) not in {int, float}:
