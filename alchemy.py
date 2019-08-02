@@ -73,11 +73,11 @@ def get_balances(address, testnet):
 
 
 @main.command()
-@click.argument("fct-address", type=str)
 @click.argument("amount", type=float)
+@click.argument("fct-address", type=str)
 @click.option("--testnet", is_flag=True)
 @click.option("--dry-run", is_flag=True)
-def burn(fct_address, amount, testnet, dry_run):
+def burn(amount, fct_address, testnet, dry_run):
     """Burn FCT for pFCT"""
     factomd = Factomd()
     try:
@@ -100,8 +100,8 @@ def burn(fct_address, amount, testnet, dry_run):
     try:
         walletd.delete_transaction(tx_name)
     except factom.exceptions.InternalError:
-        # Transaction just didn't exist
-        pass
+        pass  # Transaction just didn't exist
+
     walletd.new_transaction(tx_name)
     walletd.add_input(tx_name, factoshi_burn, fct_address)
     walletd.add_ec_output(tx_name, 0, burn_address)

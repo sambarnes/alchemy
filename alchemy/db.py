@@ -2,7 +2,7 @@ import json
 import plyvel
 import os
 import struct
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 OPR_HEAD = b"OPRHead"
@@ -42,7 +42,7 @@ class AlchemyDB:
         height_bytes = struct.pack(">I", height)
         self._db.put(FACTOID_HEAD, height_bytes)
 
-    def get_balances(self, address: bytes):
+    def get_balances(self, address: bytes) -> Union[None, Dict[str, int]]:
         sub_db = self._db.prefixed_db(BALANCES)
         balances_bytes = sub_db.get(address)
         return None if balances_bytes is None else json.loads(balances_bytes.decode())
@@ -64,7 +64,7 @@ class AlchemyDB:
         else:
             self.put_balances(address, deltas)
 
-    def get_winners(self, height: int):
+    def get_winners(self, height: int) -> List[bytes]:
         sub_db = self._db.prefixed_db(WINNERS)
         height_bytes = struct.pack(">I", height)
         winners_bytes = sub_db.get(height_bytes)

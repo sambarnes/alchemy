@@ -5,14 +5,15 @@ import pylxr
 from collections import defaultdict
 from factom import Factomd
 from factom_keys.fct import FactoidAddress
-from typing import Iterable, List
+from typing import List, Union
 
 import alchemy.consts as consts
 from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
 
-def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False):
+def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
+    """Grades all unseen entry blocks for the OPR chain, caches results when done"""
     # Initialize previous winners array
     height_last_parsed = database.get_opr_head()
     print(f"\nHighest OPR Entry Block previously parsed: {height_last_parsed}")
@@ -77,7 +78,9 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
         database.put_opr_head(top_height_graded)
 
 
-def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False):
+def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False) -> list:
+    """A generator that yields all entries (in order) starting at a given block height."""
+    # Walk the entry block chain backwards to build up a stack of entry blocks to fetch
     entry_blocks = []
     keymr = factomd.chain_head(chain_id)["chainhead"]
     while keymr != factom.client.NULL_BLOCK:
@@ -87,6 +90,7 @@ def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, includ
         entry_blocks.append(block)
         keymr = block["header"]["prevkeymr"]
 
+    # Continuously pop off the stack and yield each entry one by one (in the order that they appear in the block)
     while len(entry_blocks) > 0:
         entry_block = entry_blocks.pop()
         for entry_pointer in reversed(entry_block["entrylist"]):
@@ -98,7 +102,10 @@ def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, includ
             yield entry
 
 
-def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):
+def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]) -> Union[List[OPR], None]:
+    """Given a list of previous winners (first 8 bytes of entry hashes in hex), grade all records
+    and return a list of the top 50, sorted by grade.
+    """
     # First take top 50 by difficulty
     valid_records: List[OPR] = []
     for o in records:
@@ -149,12 +156,13 @@ def average_estimates(records: List[OPR]) -> AssetEstimates:
     return averages
 
 
-def calculate_grade(record_estimates: AssetEstimates, averages: AssetEstimates):
+def calculate_grade(record_estimates: AssetEstimates, averages: AssetEstimates) -> np.float64:
+    """Given a map of price estimates and a second map of average estimates, calculate and return a grade
+    where `grade = Σ(asset_difference^4)` over all assets in the set
+    """
     grade = np.float64(0)
     for k, v in record_estimates.items():
         if averages[k] > 0:
-            # compute the difference from the average
             d = (v - averages[k]) / averages[k]
-            # the grade is the sum of the square of the square of the differences
             grade += np.float64(d * d * d * d)
     return grade
