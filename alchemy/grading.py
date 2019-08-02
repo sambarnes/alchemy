@@ -1,9 +1,8 @@
-from colorama import Fore as color
 import factom
-import json
 import numpy as np
 import pylxr
 from collections import defaultdict
+from colorama import Fore as color
 from factom import Factomd
 from factom_keys.fct import FactoidAddress
 from typing import List, Union

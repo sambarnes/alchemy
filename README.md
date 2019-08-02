@@ -26,6 +26,7 @@ Commands:
   burn          Burn FCT for pFCT
   get-balances  Get a list of all balances for the given address
   get-winners   Get winning records at the given block height
+  reset         Delete the current alchemy database
   run           Main entry point for the node
 ```
 

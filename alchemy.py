@@ -127,5 +127,17 @@ def get_winners(height, testnet):
     print(json.dumps({"winners": winners}))
 
 
+@main.command()
+@click.confirmation_option(prompt="Are you sure you want to reset the database?")
+def reset():
+    """Delete the current alchemy database"""
+    import os
+    import shutil
+    home = os.getenv("HOME")
+    path = f"{home}/.pegnet/alchemy/"
+    shutil.rmtree(path, ignore_errors=True)
+    print(f"Deleted database at: {path}")
+
+
 if __name__ == "__main__":
     main()
