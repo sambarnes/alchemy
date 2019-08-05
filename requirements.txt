@@ -4,3 +4,4 @@ factom-api
 factom-keys
 numpy
 plyvel
+uvloop

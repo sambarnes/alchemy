@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.7
 
-import asyncio
 import click
 import factom
 import json
@@ -37,7 +36,7 @@ def main():
 def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
-    asyncio.run(alchemy.main.run(testnet))
+    alchemy.main.run(testnet)
 
 
 @main.command()

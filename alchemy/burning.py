@@ -7,7 +7,7 @@ import alchemy.consts as consts
 from alchemy.db import AlchemyDB
 
 
-async def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = False) -> None:
+def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = False) -> None:
     """Parse all unseen Factoid Blocks looking for FCT burn transactions"""
     height_last_parsed = database.get_factoid_head()
     print(f"\nHighest Factoid Block previously parsed: {height_last_parsed}")

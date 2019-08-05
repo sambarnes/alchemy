@@ -1,4 +1,5 @@
 import factom
+import hashlib
 import numpy as np
 import pylxr
 from collections import defaultdict
@@ -12,7 +13,7 @@ from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
 
-async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
+def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
     """Grades all unseen entry blocks for the OPR chain, caches results when done"""
     # Initialize previous winners array
     height_last_parsed = database.get_opr_head()
@@ -53,7 +54,7 @@ async def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet:
         record = OPR.from_entry(entry_hash, external_ids, content)
         if record is None:
             continue
-        record.opr_hash = lxr.h(content)
+        record.opr_hash = hashlib.sha256(content).digest()
         current_block_records.append(record)
 
     if 10 <= len(current_block_records):
@@ -117,8 +118,8 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
     valid_records: List[OPR] = []
     for o in records:
         difficulty = lxr.h(o.opr_hash + o.nonce)[:8]
-        if difficulty != o.self_reported_difficulty != difficulty:
-            print(f"Dishonest OPR difficulty reported at entry: {o.entry_hash}")
+        if difficulty != o.self_reported_difficulty:
+            print(f"Dishonest OPR difficulty: e_hash={o.entry_hash.hex()}, observed={difficulty.hex()}, reported={o.self_reported_difficulty.hex()}")
             continue
         if o.prev_winners != previous_winners:
             continue
