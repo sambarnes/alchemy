@@ -168,4 +168,4 @@ $ ./alchemy.py graph-prices XBT
 Done. A browser window should open shortly.
 ```
 
-![XBT Graph]("README_assets/xbt_graph.png")
+![XBT Graph](README_assets/xbt_graph.png)
