@@ -11,7 +11,8 @@ An alternative utility for interacting with the PegNet.
 
 ## Prerequisites
 - Make sure to have a LXR map generated already, it'll take far far too long for the naive python implementation to generate it
-- Install the [pylxr](https://github.com/pegnet/pylxr) module to your python virtual environment 
+- A running factomd node locally with a running PegNet chain
+- A running factom-walletd locally (optional: only required if burning factoids)
 
 ## Usage
 *(Note: all commands currently assume locally running factomd and factom-walletd instances)*
@@ -160,7 +161,7 @@ $ ./alchemy.py get-winners 76 | jq
 ```
 
 ### Graphing Asset Prices
-Basic time-series graphs for a given asset is supported with the `./alchemy.py graph-prices [TICKER]` command.Example
+Basic time-series graphs for a given asset is supported with the `./alchemy.py graph-prices TICKER [--by-height]` command.
 
 Example:
 ```
