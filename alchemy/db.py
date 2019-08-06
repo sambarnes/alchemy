@@ -2,6 +2,7 @@ import json
 import plyvel
 import os
 import struct
+from factom_keys.fct import FactoidAddress
 from typing import Dict, List, Union
 
 
@@ -42,8 +43,13 @@ class AlchemyDB:
         height_bytes = struct.pack(">I", height)
         self._db.put(FACTOID_HEAD, height_bytes)
 
-    def get_balances(self, address: bytes) -> Union[None, Dict[str, int]]:
+    def get_balances(self, address: Union[bytes, str]) -> Union[None, Dict[str, int]]:
+        """Gets a map of balances for the given address.
+        :param address: A bytes object of the address RCD hash, or a string of the address in human readable notation
+        """
         sub_db = self._db.prefixed_db(BALANCES)
+        if type(address) == str:
+            address = FactoidAddress(address_string=address).rcd_hash
         balances_bytes = sub_db.get(address)
         return None if balances_bytes is None else json.loads(balances_bytes.decode())
 
@@ -64,11 +70,14 @@ class AlchemyDB:
         else:
             self.put_balances(address, deltas)
 
-    def get_winners(self, height: int) -> List[bytes]:
+    def get_winners(self, height: int, encode_to_hex: bool = False) -> List[bytes]:
         sub_db = self._db.prefixed_db(WINNERS)
         height_bytes = struct.pack(">I", height)
         winners_bytes = sub_db.get(height_bytes)
-        return [] if winners_bytes is None else [winners_bytes[i : i + 32] for i in range(0, 10 * 32, 32)]
+        if winners_bytes is None:
+            return []
+        result = [winners_bytes[i : i + 32] for i in range(0, 10 * 32, 32)]
+        return result if not encode_to_hex else [h.hex() for h in result]
 
     def put_winners(self, height: int, winners: List[bytes]):
         sub_db = self._db.prefixed_db(WINNERS)

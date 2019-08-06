@@ -23,15 +23,17 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  burn          Burn FCT for pFCT
-  get-balances  Get a list of all balances for the given address
-  get-winners   Get winning records at the given block height
-  reset         Delete the current alchemy database
-  run           Main entry point for the node
+  burn              Burn FCT for pFCT
+  get-balances      Get a list of all balances for the given address
+  get-factoid-head  Get the highest Factoid block parsed
+  get-opr-head      Get the highest OPR Entry block parsed
+  get-winners       Get winning records at the given block height
+  reset             Delete the current alchemy database
+  run               Main entry point for the node
 ```
 
 ### Running the Grader
-This command will grade all unseen oracle price records and run through all unseen Factoid Blocks looking for burn transactions. Stores results in a database to save progress and make subsequent runs quicker.
+This command will grade all unseen oracle price records and run through all unseen Factoid Blocks looking for burn transactions. Stores results in a database to save progress and make subsequent runs quicker. It will also launch a MessagePack based RPC server for the CLI to utilize
 
 Example:
 ```
@@ -49,21 +51,23 @@ $ ./alchemy.py run
   '._____.'    \__,_|_|\___|_| |_|\___|_| |_| |_|\__, |
                                                  |___/
 
-Current Factom block height: 218
 
-Highest OPR Entry Block previously parsed: 167
+Current Factom block height: 145
+Dispatched tasks. Sleeping for 1 minute...
+
+
+Highest OPR Entry Block previously parsed: 142
+Graded OPR block 143 (winners: ['c48d70ccdbc9121a', '1b2b21b3d49894f7', '6d1abd9da09957ec', '10ef6812a03c56b9', 'cb0928ad73503bed', '124d5e51cd6d91d0', '27cb90f0d1650e4b', 'fb90b47f8f16ec0c', 'f0112da0392382fb', '3d494c4d09664c87'])
+Graded OPR block 144 (winners: ['10a7585cdd6659ba', 'b4bcabd1eaf69de7', '47a7616fd2ca5626', '545282d63903cd25', '0eb46244b22bc153', 'b398ddeb36071c16', 'dcf1636ede1341d7', 'facccd20bf5cb633', '9f314e621a306595', '5c7609b303734f85'])
+Graded OPR block 145 (winners: ['b1e805e484c6280b', '2179a18295d0dca6', '776170efe152cd76', '152b25b16ba178be', '3483dd3c63ba6b9a', 'f1100f6eb334c547', '69f55d349d7f0696', '75e8bbc3466f1680', '09a2a99677c014f5', '3acf9f917284774c'])
 Finished grading all unseen blocks
-Updating database...
+Updating OPR database...
 
-Highest Factoid Block previously parsed: 213
-Finding burn transactions in factoid block 214...
-Finding burn transactions in factoid block 215...
-Finding burn transactions in factoid block 216...
-Finding burn transactions in factoid block 217...
-Finding burn transactions in factoid block 218...
-Updating database...
-
-Done.
+Highest Factoid Block previously parsed: 142
+Parsed factoid block 143 (burns found: 0)
+Parsed factoid block 144 (burns found: 0)
+Parsed factoid block 145 (burns found: 0)
+Updating FCT burn database...
 ```
 
 ### Burning FCT for pFCT

@@ -3,11 +3,11 @@
 import click
 import factom
 import json
-from factom_keys.fct import FactoidAddress
 from factom import Factomd, FactomWalletd
 
 import alchemy.main
 import alchemy.consts as consts
+import alchemy.rpc
 from alchemy.db import AlchemyDB
 
 
@@ -40,27 +40,6 @@ def run(testnet):
 
 
 @main.command()
-@click.argument("address", type=str)
-@click.option("--testnet", is_flag=True)
-def get_balances(address, testnet):
-    """Get a list of all balances for the given address"""
-    factomd = Factomd()
-    database = AlchemyDB(testnet, create_if_missing=True)
-    try:
-        fct_balance = factomd.factoid_balance(address).get("balance")
-    except factom.exceptions.InvalidParams:
-        print("Invalid Address")
-        return
-
-    address_bytes = FactoidAddress(address_string=address).rcd_hash
-    balances = database.get_balances(address_bytes)
-    if balances is None:
-        balances = {}
-    balances["FCT"] = fct_balance
-    print(json.dumps({"balances": balances}))
-
-
-@main.command()
 @click.argument("amount", type=float)
 @click.argument("fct-address", type=str)
 @click.option("--testnet", is_flag=True)
@@ -83,11 +62,7 @@ def burn(amount, fct_address, testnet, dry_run):
     walletd = FactomWalletd()
     tx_name = "burn"
     factoshi_burn = int(amount * consts.FACTOSHIS_PER_FCT)
-    burn_address = (
-        consts.BurnAddresses.MAINNET.value
-        if not testnet
-        else consts.BurnAddresses.TESTNET.value
-    )
+    burn_address = consts.BurnAddresses.MAINNET.value if not testnet else consts.BurnAddresses.TESTNET.value
     print(f"Burning {amount} FCT from {fct_address} to {burn_address}...")
     try:
         walletd.delete_transaction(tx_name)
@@ -109,33 +84,51 @@ def burn(amount, fct_address, testnet, dry_run):
 
 
 @main.command()
-@click.argument("height", type=int)
-@click.option("--testnet", is_flag=True)
-def get_winners(height, testnet):
-    """Get winning records at the given block height"""
-    database = AlchemyDB(testnet, create_if_missing=True)
-    winning_entry_hashes = database.get_winners(height)
-    winners = (
-        [
-            {"place": i + 1, "entry_hash": entry_hash.hex()}
-            for i, entry_hash in enumerate(winning_entry_hashes)
-        ]
-        if len(winning_entry_hashes) != 0
-        else None
-    )
-    print(json.dumps({"winners": winners}))
-
-
-@main.command()
 @click.confirmation_option(prompt="Are you sure you want to reset the database?")
 def reset():
     """Delete the current alchemy database"""
     import os
     import shutil
+
     home = os.getenv("HOME")
     path = f"{home}/.pegnet/alchemy/"
     shutil.rmtree(path, ignore_errors=True)
     print(f"Deleted database at: {path}")
+
+
+# --------------------------------------------------------------------------------
+# RPC Wrapper Commands
+
+
+@main.command()
+def get_opr_head():
+    """Get the highest OPR Entry block parsed"""
+    result = alchemy.rpc.get_opr_head()
+    print(json.dumps(result))
+
+
+@main.command()
+def get_factoid_head():
+    """Get the highest Factoid block parsed"""
+    result = alchemy.rpc.get_factoid_head()
+    print(json.dumps(result))
+
+
+@main.command()
+@click.argument("height", type=int)
+def get_winners(height):
+    """Get winning records at the given block height"""
+    result = alchemy.rpc.get_winners(height)
+    print(json.dumps(result))
+
+
+@main.command()
+@click.argument("address", type=str)
+@click.option("--testnet", is_flag=True)
+def get_balances(address, testnet):
+    """Get a list of all balances for the given address"""
+    result = alchemy.rpc.get_balances(address)
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

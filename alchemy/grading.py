@@ -119,7 +119,9 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
     for o in records:
         difficulty = lxr.h(o.opr_hash + o.nonce)[:8]
         if difficulty != o.self_reported_difficulty:
-            print(f"Dishonest OPR difficulty: e_hash={o.entry_hash.hex()}, observed={difficulty.hex()}, reported={o.self_reported_difficulty.hex()}")
+            print(
+                f"Dishonest OPR difficulty: e_hash={o.entry_hash.hex()}, observed={difficulty.hex()}, reported={o.self_reported_difficulty.hex()}"
+            )
             continue
         if o.prev_winners != previous_winners:
             continue
