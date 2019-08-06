@@ -2,7 +2,10 @@ import aiorpc
 import asyncio
 import uvloop
 import factom
+import plotly.graph_objects as go
+import pandas as pd
 
+import alchemy.price_data
 from alchemy.db import AlchemyDB
 
 
@@ -66,3 +69,20 @@ def get_balances(address: str):
         balances = {}
     balances["FCT"] = fct_balance
     return {"balances": balances}
+
+
+def graph_prices(ticker: str, is_by_height: bool = False):
+    df = pd.read_csv(alchemy.price_data.filename)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df['Height'] if is_by_height else df.Date,
+        y=df[ticker],
+        name=f"{ticker} Prices",
+        line_color="deepskyblue",
+        opacity=0.8,
+    ))
+    fig.update_layout(
+        title_text=f"Time Series {ticker} Prices",
+        xaxis_rangeslider_visible=True,
+    )
+    fig.show()

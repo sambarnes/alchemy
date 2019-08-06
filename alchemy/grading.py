@@ -9,6 +9,7 @@ from factom_keys.fct import FactoidAddress
 from typing import List, Union
 
 import alchemy.consts as consts
+import alchemy.price_data
 from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
@@ -50,8 +51,8 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
 
         # If it's a valid OPR, compute its hash and append to current block OPRs
         entry_hash = bytes.fromhex(e["entryhash"])
-        external_ids, content = e["extids"], e["content"]
-        record = OPR.from_entry(entry_hash, external_ids, content)
+        external_ids, content, timestamp = e["extids"], e["content"], e["timestamp"]
+        record = OPR.from_entry(entry_hash, external_ids, content, timestamp)
         if record is None:
             continue
         record.opr_hash = hashlib.sha256(content).digest()
@@ -79,6 +80,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
         database.put_winners(height, winners)
         for i, record in enumerate(records):
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
+        alchemy.price_data.write(records[0])
     for address, delta in pnt_deltas.items():
         address_bytes = FactoidAddress(address_string=address).rcd_hash
         database.update_balances(address_bytes, {consts.PNT: delta})

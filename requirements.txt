@@ -3,5 +3,7 @@ colorama
 factom-api
 factom-keys
 numpy
+pandas
+plotly
 plyvel
 uvloop

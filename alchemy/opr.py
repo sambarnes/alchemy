@@ -20,12 +20,13 @@ class OPR:
     asset_estimates: AssetEstimates
     prev_winners: List[str]
     miner_id: str
+    timestamp: int
 
     grade: np.float64 = np.inf
     opr_hash: bytes = bytes(32)
 
     @classmethod
-    def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes):
+    def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes, timestamp: int):
         if type(entry_hash) != bytes or len(entry_hash) != 32:
             return None
         if len(external_ids) != 2:
@@ -81,4 +82,5 @@ class OPR:
             asset_estimates=asset_estimates,
             prev_winners=prev_winners,
             miner_id=miner_id,
+            timestamp=timestamp,
         )

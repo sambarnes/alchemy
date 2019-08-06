@@ -28,6 +28,7 @@ Commands:
   get-factoid-head  Get the highest Factoid block parsed
   get-opr-head      Get the highest OPR Entry block parsed
   get-winners       Get winning records at the given block height
+  graph-prices      Show a graph for the prices of a given ticker
   reset             Delete the current alchemy database
   run               Main entry point for the node
 ```
@@ -157,3 +158,14 @@ $ ./alchemy.py get-winners 76 | jq
   ]
 }
 ```
+
+### Graphing Asset Prices
+Basic time-series graphs for a given asset is supported with the `./alchemy.py graph-prices [TICKER]` command.Example
+
+Example:
+```
+$ ./alchemy.py graph-prices XBT
+Done. A browser window should open shortly.
+```
+
+![XBT Graph]("README_assets/xbt_graph.png")

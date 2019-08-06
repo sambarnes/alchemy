@@ -131,5 +131,18 @@ def get_balances(address, testnet):
     print(json.dumps(result))
 
 
+@main.command()
+@click.argument("ticker", type=str)
+@click.option("--by-height", is_flag=True)
+def graph_prices(ticker, by_height):
+    """Show a graph for the prices of a given ticker"""
+    if ticker not in consts.ALL_PEGGED_ASSETS:
+        print("Invalid ticker symbol!\n")
+        print(f"Possible values: {consts.ALL_PEGGED_ASSETS}")
+        return
+    alchemy.rpc.graph_prices(ticker, by_height)
+    print("Done. A browser window should open shortly.")
+
+
 if __name__ == "__main__":
     main()
