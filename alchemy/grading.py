@@ -53,7 +53,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
         entry_hash = bytes.fromhex(e["entryhash"])
         external_ids, content, timestamp = e["extids"], e["content"], e["timestamp"]
         record = OPR.from_entry(entry_hash, external_ids, content, timestamp)
-        if record is None:
+        if record is None or record.height != current_height:
             continue
         record.opr_hash = hashlib.sha256(content).digest()
         current_block_records.append(record)

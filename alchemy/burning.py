@@ -12,6 +12,8 @@ def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = Fal
     height_last_parsed = database.get_factoid_head()
     print(f"\nHighest Factoid Block previously parsed: {height_last_parsed}")
 
+    if height_last_parsed == -1:
+        height_last_parsed += consts.START_HEIGHT
     height = height_last_parsed + 1
     expected_burn_address = consts.BurnAddresses.MAINNET.value if not is_testnet else consts.BurnAddresses.TESTNET.value
     all_account_deltas: Dict[bytes, Dict[str:float]] = {}
