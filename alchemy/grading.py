@@ -9,7 +9,7 @@ from factom_keys.fct import FactoidAddress
 from typing import List, Union
 
 import alchemy.consts as consts
-import alchemy.price_data
+import alchemy.csv_exporting
 from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
@@ -27,6 +27,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
 
     # First pass of OPR validation
     # Collect all sane entries in each block, sorting by self reported difficulty as we go
+    winners_by_height = {}
     top50_by_height = {}
     current_block_records = []
     current_height = height_last_parsed
@@ -37,9 +38,10 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
             if 10 <= len(current_block_records):
                 # We have enough sane records to grade. Sort by self reported difficulty do that now
                 current_block_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-                top50 = grade_records(lxr, previous_winners, current_block_records)
-                if top50 is not None:
-                    previous_winners = [record.entry_hash[:8].hex() for record in top50[:10]]
+                winners, top50 = grade_records(lxr, previous_winners, current_block_records)
+                if winners is not None:
+                    previous_winners = [record.entry_hash[:8].hex() for record in winners]
+                    winners_by_height[current_height] = winners
                     top50_by_height[current_height] = top50
                     print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
                 else:
@@ -62,9 +64,10 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
         # (Repeat from above, just to flush out the last block of records.)
         # We have enough sane records to grade. Sort by self reported difficulty do that now
         current_block_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-        top50 = grade_records(lxr, previous_winners, current_block_records)
-        if top50 is not None:
-            previous_winners = [record.entry_hash[:8].hex() for record in top50[:10]]
+        winners, top50 = grade_records(lxr, previous_winners, current_block_records)
+        if winners is not None:
+            previous_winners = [record.entry_hash[:8].hex() for record in winners]
+            winners_by_height[current_height] = winners
             top50_by_height[current_height] = top50
             print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
         else:
@@ -75,15 +78,21 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
     print("Finished grading all unseen blocks")
     print("Updating OPR database...")
     pnt_deltas = defaultdict(float)
-    for height, records in top50_by_height.items():
+    # Update winners in database. Calculate PNT reward deltas. Export winning prices to csv
+    for height, records in winners_by_height.items():
         winners = [record.entry_hash for record in records[:10]]
         database.put_winners(height, winners)
         for i, record in enumerate(records):
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
-        alchemy.price_data.write(records[0])
+        alchemy.csv_exporting.write_prices(records[0])
+    # Export top and bottom difficulties per block to csv
+    for height, records in top50_by_height.items():
+        alchemy.csv_exporting.write_difficulty(records[0], records[-1])
+    # Update PNT balances in database
     for address, delta in pnt_deltas.items():
         address_bytes = FactoidAddress(address_string=address).rcd_hash
         database.update_balances(address_bytes, {consts.PNT: delta})
+    # Update database checkpoint for OPR chain
     if height_last_parsed < current_height:
         database.put_opr_head(current_height)
 
@@ -112,7 +121,7 @@ def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, includ
             yield entry
 
 
-def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]) -> Union[List[OPR], None]:
+def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):
     """Given a list of previous winners (first 8 bytes of entry hashes in hex), grade all records
     and return a list of the top 50, sorted by grade.
     """
@@ -132,22 +141,23 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
             break  # Found max number of honest submissions, go grade them
 
     if len(valid_records) < 10:
-        return None  # Must have at least 10 valid submissions to grade them
+        return None, None  # Must have at least 10 valid submissions to grade them
 
     # TODO: opr.RemoveDuplicateSubmissions().
     #       Technically not needed, but should match reference implementation
 
+    graded_records = valid_records
     # Then calculate grade for each record in the top 50 and sort
-    for i in range(len(valid_records) - 1, -1, -1):
+    for i in range(len(graded_records) - 1, -1, -1):
         if i < 10:
             break
-        averages = average_estimates(valid_records[:i])
+        averages = average_estimates(graded_records[:i])
         for j in range(i):
-            valid_records[j].grade = calculate_grade(valid_records[j].asset_estimates, averages)
-        valid_records[:i] = sorted(valid_records[:i], key=lambda x: x.self_reported_difficulty, reverse=True)
-        valid_records[:i] = sorted(valid_records[:i], key=lambda x: x.grade)
+            graded_records[j].grade = calculate_grade(graded_records[j].asset_estimates, averages)
+        graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.self_reported_difficulty, reverse=True)
+        graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.grade)
 
-    return valid_records  # Return top 50 in graded order, top 10 are the winners
+    return graded_records[:10], valid_records  # Return top 50 in graded order, top 10 are the winners
 
 
 def average_estimates(records: List[OPR]) -> AssetEstimates:

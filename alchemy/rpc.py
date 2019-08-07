@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import pandas as pd
 from typing import List
 
-import alchemy.price_data
+import alchemy.csv_exporting
 from alchemy.db import AlchemyDB
 
 
@@ -73,24 +73,8 @@ def get_balances(address: str):
     return {"balances": balances}
 
 
-def graph_prices(ticker: str, is_by_height: bool = False):
-    df = pd.read_csv(alchemy.price_data.filename)
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=df["Height"] if is_by_height else df.Date,
-            y=df[ticker],
-            name=f"{ticker} Prices",
-            line_color="deepskyblue",
-            opacity=0.8,
-        )
-    )
-    fig.update_layout(title_text=f"Time Series {ticker} Prices", xaxis_rangeslider_visible=True)
-    fig.show()
-
-
 def graph_prices(tickers: List[str], is_by_height: bool = False):
-    df = pd.read_csv(alchemy.price_data.filename)
+    df = pd.read_csv(alchemy.csv_exporting.prices_filename)
     fig = plotly.subplots.make_subplots(rows=len(tickers), cols=1, subplot_titles=tickers)
     for i, ticker in enumerate(tickers):
         fig.add_trace(
@@ -101,4 +85,19 @@ def graph_prices(tickers: List[str], is_by_height: bool = False):
     fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
     fig.update_yaxes(title_text="USD")
     fig.update_layout(title_text=f"Time Series Prices for All Assets", height=600 * len(tickers))
+    fig.show()
+
+
+def graph_difficulties(is_by_height: bool = False):
+    df = pd.read_csv(alchemy.csv_exporting.difficulties_filename)
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(x=df["Height"] if is_by_height else df.Date, y=df["Top"], name=f"Top Difficulty", opacity=0.8)
+    )
+    fig.add_trace(
+        go.Scatter(x=df["Height"] if is_by_height else df.Date, y=df["Bottom"], name=f"Bottom Difficulty", opacity=0.8)
+    )
+    fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
+    fig.update_yaxes(title_text="Difficulty")
+    fig.update_layout(title_text=f"Time Series Miner Difficulties", height=750, xaxis_rangeslider_visible=True)
     fig.show()

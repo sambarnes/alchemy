@@ -149,5 +149,13 @@ def graph_prices(ticker, by_height):
     print("Done. A browser window should open shortly.")
 
 
+@main.command()
+@click.option("--by-height", is_flag=True)
+def graph_difficulties(by_height):
+    """Show a graph for the range of winning miner difficulties"""
+    alchemy.rpc.graph_difficulties(by_height)
+    print("Done. A browser window should open shortly.")
+
+
 if __name__ == "__main__":
     main()

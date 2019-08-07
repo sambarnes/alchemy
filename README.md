@@ -161,7 +161,7 @@ $ ./alchemy.py get-winners 76 | jq
 ```
 
 ### Graphing Asset Prices
-Basic time-series graphs for a given asset is supported with the `./alchemy.py graph-prices TICKER [--by-height]` command.
+Basic time-series graphs for a given asset is supported with the `./alchemy.py graph-prices -t TICKER [--by-height]` command.
 
 Example:
 ```
@@ -174,3 +174,8 @@ Done. A browser window should open shortly.
 Other options include:
 - Graphing all assets with: `$ ./alchemy.py graph-prices`
 - Graphing a set of assets with `$ ./alchemy.py graph-prices -t XBT -t FCT`
+
+### Graphing Winning Miner Difficulty Ranges
+Basic time-series graph for the range of winning mining difficulties `./alchemy.py graph-difficulties [--by-height]`
+
+![Difficulties Range Graph](README_assets/difficulties_graph.png)
