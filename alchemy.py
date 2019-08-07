@@ -4,6 +4,7 @@ import click
 import factom
 import json
 from factom import Factomd, FactomWalletd
+from typing import List
 
 import alchemy.main
 import alchemy.consts as consts
@@ -132,14 +133,18 @@ def get_balances(address, testnet):
 
 
 @main.command()
-@click.argument("ticker", type=str)
+@click.option("--ticker", "-t", type=str, multiple=True)
 @click.option("--by-height", is_flag=True)
 def graph_prices(ticker, by_height):
-    """Show a graph for the prices of a given ticker"""
-    if ticker not in consts.ALL_PEGGED_ASSETS:
-        print("Invalid ticker symbol!\n")
-        print(f"Possible values: {consts.ALL_PEGGED_ASSETS}")
-        return
+    """Show a graph for the prices of given tickers"""
+    for t in ticker:
+        if t not in consts.ALL_PEGGED_ASSETS:
+            print(f"Invalid ticker symbol: {t}\n")
+            print(f"Possible values: {consts.ALL_PEGGED_ASSETS}")
+            return
+    if len(ticker) == 0:
+        ticker = sorted(consts.ALL_PEGGED_ASSETS)
+
     alchemy.rpc.graph_prices(ticker, by_height)
     print("Done. A browser window should open shortly.")
 

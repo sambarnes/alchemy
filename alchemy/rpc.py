@@ -2,8 +2,10 @@ import aiorpc
 import asyncio
 import uvloop
 import factom
+import plotly.subplots
 import plotly.graph_objects as go
 import pandas as pd
+from typing import List
 
 import alchemy.price_data
 from alchemy.db import AlchemyDB
@@ -74,15 +76,29 @@ def get_balances(address: str):
 def graph_prices(ticker: str, is_by_height: bool = False):
     df = pd.read_csv(alchemy.price_data.filename)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df['Height'] if is_by_height else df.Date,
-        y=df[ticker],
-        name=f"{ticker} Prices",
-        line_color="deepskyblue",
-        opacity=0.8,
-    ))
-    fig.update_layout(
-        title_text=f"Time Series {ticker} Prices",
-        xaxis_rangeslider_visible=True,
+    fig.add_trace(
+        go.Scatter(
+            x=df["Height"] if is_by_height else df.Date,
+            y=df[ticker],
+            name=f"{ticker} Prices",
+            line_color="deepskyblue",
+            opacity=0.8,
+        )
     )
+    fig.update_layout(title_text=f"Time Series {ticker} Prices", xaxis_rangeslider_visible=True)
+    fig.show()
+
+
+def graph_prices(tickers: List[str], is_by_height: bool = False):
+    df = pd.read_csv(alchemy.price_data.filename)
+    fig = plotly.subplots.make_subplots(rows=len(tickers), cols=1, subplot_titles=tickers)
+    for i, ticker in enumerate(tickers):
+        fig.add_trace(
+            go.Scatter(x=df["Height"] if is_by_height else df.Date, y=df[ticker], name=f"{ticker} Prices", opacity=0.8),
+            row=i + 1,
+            col=1,
+        )
+    fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
+    fig.update_yaxes(title_text="USD")
+    fig.update_layout(title_text=f"Time Series Prices for All Assets", height=600 * len(tickers))
     fig.show()

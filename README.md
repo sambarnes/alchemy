@@ -29,7 +29,7 @@ Commands:
   get-factoid-head  Get the highest Factoid block parsed
   get-opr-head      Get the highest OPR Entry block parsed
   get-winners       Get winning records at the given block height
-  graph-prices      Show a graph for the prices of a given ticker
+  graph-prices      Show a graph for the prices of given tickers
   reset             Delete the current alchemy database
   run               Main entry point for the node
 ```
@@ -165,8 +165,12 @@ Basic time-series graphs for a given asset is supported with the `./alchemy.py g
 
 Example:
 ```
-$ ./alchemy.py graph-prices XBT
+$ ./alchemy.py graph-prices -t XBT
 Done. A browser window should open shortly.
 ```
 
 ![XBT Graph](README_assets/xbt_graph.png)
+
+Other options include:
+- Graphing all assets with: `$ ./alchemy.py graph-prices`
+- Graphing a set of assets with `$ ./alchemy.py graph-prices -t XBT -t FCT`
