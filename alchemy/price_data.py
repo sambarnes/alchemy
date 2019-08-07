@@ -12,7 +12,7 @@ filename = f"{path}/data.csv"
 def write(record):
     if not os.path.exists(path):
         os.makedirs(path)
-    headers = ["Date", "Height"] + list(consts.ALL_PEGGED_ASSETS)
+    headers = ["Date", "Height"] + sorted(list(consts.ALL_PEGGED_ASSETS))
     row = record.asset_estimates
     row["Date"] = np.datetime64(datetime.datetime.utcfromtimestamp(record.timestamp))
     row["Height"] = record.height
