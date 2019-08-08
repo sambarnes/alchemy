@@ -92,10 +92,23 @@ def graph_difficulties(is_by_height: bool = False):
     df = pd.read_csv(alchemy.csv_exporting.difficulties_filename)
     fig = go.Figure()
     fig.add_trace(
-        go.Scatter(x=df["Height"] if is_by_height else df.Date, y=df["Top"], name=f"Top Difficulty", opacity=0.8)
+        go.Scatter(
+            x=df["Height"] if is_by_height else df.Date,
+            y=df["Top"],
+            name=f"Top Difficulty",
+            line_color="deepskyblue",
+            opacity=0.8,
+        )
     )
     fig.add_trace(
-        go.Scatter(x=df["Height"] if is_by_height else df.Date, y=df["Bottom"], name=f"Bottom Difficulty", opacity=0.8)
+        go.Scatter(
+            x=df["Height"] if is_by_height else df.Date,
+            y=df["Bottom"],
+            name=f"Bottom Difficulty",
+            fill="tonexty",
+            line_color="darkviolet",
+            opacity=0.8,
+        )
     )
     fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
     fig.update_yaxes(title_text="Difficulty")
