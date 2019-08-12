@@ -57,6 +57,10 @@ class Transaction:
         return Transaction(input=d.get("input"), outputs=d.get("outputs"), metadata=d.get("metadata"))
 
     def is_valid(self) -> bool:
+        """
+        Returns True if the structure of the transaction is sane and able to be executed.
+        Does not take balances or conversion rates into account
+        """
         if type(self.input) != dict:
             return False
 
@@ -140,6 +144,16 @@ class TransactionsEntry:
     def content(self):
         tx_payload = {"transactions": [tx.to_dict() for tx in self._txs]}
         return json.dumps(tx_payload, separators=(",", ":")).encode()
+
+    def is_valid(self):
+        """
+        Returns True if the structure of all transactions are sane and able to be executed.
+        Does not take balances or conversion rates into account
+        """
+        for tx in self._txs:
+            if not tx.is_valid():
+                return False
+        return True
 
 
 def send(txs_entry: TransactionsEntry, ec_address: ECAddress):

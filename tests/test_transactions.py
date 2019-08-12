@@ -135,12 +135,29 @@ class TestTransactions(unittest.TestCase):
 class TestConversions(unittest.TestCase):
     def test_is_valid(self):
         valid_cases = {
-            "PNT -> pUSD": {
+            "one input, one output": {
                 "input": {
                     "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
                     "type": "PNT",
                     "amount": 50,
                 },
+                "outputs": [
+                    {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD", "amount": 50}
+                ],
+            },
+            "one input, multiple outputs": {
+                "input": {
+                    "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                    "type": "PNT",
+                    "amount": 50,
+                },
+                "outputs": [
+                    {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD", "amount": 50},
+                    {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "FCT", "amount": 50},
+                ],
+            },
+            "no input amount": {
+                "input": {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "PNT"},
                 "outputs": [
                     {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD", "amount": 50}
                 ],
@@ -152,12 +169,6 @@ class TestConversions(unittest.TestCase):
                     "amount": 50,
                 },
                 "outputs": [{"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD"}],
-            },
-            "no input amount": {
-                "input": {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "PNT"},
-                "outputs": [
-                    {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD", "amount": 50}
-                ],
             },
         }
         for name, case in valid_cases.items():
