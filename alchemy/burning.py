@@ -17,7 +17,6 @@ def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = Fal
     height = height_last_parsed + 1
     expected_burn_address = consts.BurnAddresses.MAINNET.value if not is_testnet else consts.BurnAddresses.TESTNET.value
     all_account_deltas: Dict[bytes, Dict[str:float]] = {}
-    network_ticker = "p" if not is_testnet else "t"
     while True:
         try:
             factoid_block = factomd.factoid_block_by_height(height)["fblock"]
@@ -40,7 +39,7 @@ def find_new_burns(factomd: Factomd, database: AlchemyDB, is_testnet: bool = Fal
             burn_amount = inputs[0].get("amount", 0)
             address = bytes.fromhex(inputs[0].get("address"))
             this_account_deltas = all_account_deltas.get(address, defaultdict(float))
-            this_account_deltas[f"{network_ticker}FCT"] += burn_amount
+            this_account_deltas[f"pFCT"] += burn_amount
             all_account_deltas[address] = this_account_deltas
             burn_count += 1
 

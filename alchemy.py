@@ -138,12 +138,12 @@ def get_balances(address, testnet):
 def graph_prices(ticker, by_height):
     """Show a graph for the prices of given tickers"""
     for t in ticker:
-        if t not in consts.ALL_PEGGED_ASSETS:
+        if t not in consts.ALL_ASSETS:
             print(f"Invalid ticker symbol: {t}\n")
-            print(f"Possible values: {consts.ALL_PEGGED_ASSETS}")
+            print(f"Possible values: {consts.ALL_ASSETS}")
             return
     if len(ticker) == 0:
-        ticker = sorted(consts.ALL_PEGGED_ASSETS)
+        ticker = sorted(consts.ALL_ASSETS)
 
     alchemy.rpc.graph_prices(ticker, by_height)
     print("Done. A browser window should open shortly.")

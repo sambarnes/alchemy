@@ -23,14 +23,13 @@ async def monitor_producer(q: asyncio.Queue):
     height = 0
     while True:
         latest_block = factomd.heights()["directoryblockheight"]
-        print(f"\nCurrent Factom block height: {latest_block}")
         if height < latest_block:
+            print(f"\nNew block created: {latest_block}")
             height = latest_block
             await q.put(height)
             print("Dispatched tasks. Sleeping for 1 minute...\n")
             await asyncio.sleep(60)
         else:
-            print("No new blocks found. Sleeping for 10 seconds...\n")
             await asyncio.sleep(10)
 
 
@@ -42,6 +41,7 @@ async def monitor_consumer(q: asyncio.Queue, database: AlchemyDB, is_testnet: bo
         alchemy.grading.run(factomd, lxr, database, is_testnet)
         alchemy.burning.find_new_burns(factomd, database, is_testnet)
         q.task_done()
+        print("Done. Waiting for next block...")
 
 
 def run(is_testnet: bool):

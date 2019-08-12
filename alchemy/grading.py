@@ -162,7 +162,7 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
 
 def average_estimates(records: List[OPR]) -> AssetEstimates:
     """Computes the average answer for the price of each token reported"""
-    averages: AssetEstimates = {k: np.float64(0) for k in consts.ALL_PEGGED_ASSETS}
+    averages: AssetEstimates = {k: np.float64(0) for k in consts.ALL_ASSETS}
     # Sum up all the prices
     for record in records:
         for k, v in record.asset_estimates.items():

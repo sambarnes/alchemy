@@ -29,7 +29,7 @@ class OPR:
     def from_entry(cls, entry_hash: bytes, external_ids: list, content: bytes, timestamp: int):
         if type(entry_hash) != bytes or len(entry_hash) != 32:
             return None
-        if len(external_ids) != 2:
+        if len(external_ids) != 3:
             return None
         try:
             record_json = json.loads(content.decode())
@@ -38,7 +38,10 @@ class OPR:
 
         nonce = external_ids[0]
         self_reported_difficulty = external_ids[1]
-        if type(nonce) != bytes or type(self_reported_difficulty) != bytes:
+        version = external_ids[2]
+        if type(nonce) != bytes or type(self_reported_difficulty) != bytes or type(version) != bytes:
+            return None
+        if len(version) != 1 or version[0] != 1:
             return None
 
         coinbase = record_json.get("coinbase")
@@ -62,14 +65,14 @@ class OPR:
 
         # Check that the OPR has all required assets (and no more)
         asset_estimates = record_json.get("assets")
-        if type(asset_estimates) != dict or len(asset_estimates.keys()) != len(consts.ALL_PEGGED_ASSETS):
+        if type(asset_estimates) != dict or len(asset_estimates.keys()) != len(consts.ALL_ASSETS):
             return None
         for k, v in asset_estimates.items():
             if type(k) != str or type(v) not in {int, float}:
                 return None
             if k != consts.PNT and v == 0:
                 return None
-        for k in consts.ALL_PEGGED_ASSETS:
+        for k in consts.ALL_ASSETS:
             if k not in asset_estimates:
                 return None
 

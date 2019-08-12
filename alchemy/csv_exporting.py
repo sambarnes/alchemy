@@ -15,7 +15,7 @@ difficulties_filename = f"{difficulties_path}/data.csv"
 def write_prices(record):
     if not os.path.exists(prices_path):
         os.makedirs(prices_path)
-    headers = ["Date", "Height"] + sorted(list(consts.ALL_PEGGED_ASSETS))
+    headers = ["Date", "Height"] + sorted(list(consts.ALL_ASSETS))
     row = record.asset_estimates
     row["Date"] = np.datetime64(datetime.datetime.utcfromtimestamp(record.timestamp))
     row["Height"] = record.height
