@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from factom import Factomd, FactomWalletd
 from factom_keys.ec import ECAddress
 from factom_keys.fct import FactoidAddress, FactoidPrivateKey
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import alchemy.consts as consts
 
@@ -37,6 +37,8 @@ class Transaction:
         :param amount: The amount of `asset_type` tokens being asked for
         :return:
         """
+        if self.outputs is None:
+            self.outputs = []
         output = dict()
         if address is not None:
             output["address"] = address.to_string()
@@ -105,11 +107,11 @@ class Transaction:
 
 
 @dataclass
-class TransactionsEntry:
+class TransactionEntry:
     timestamp: str = str(datetime.datetime.utcnow().timestamp())
 
-    _txs: List[Transaction] = dataclasses.field(init=False)
-    _signer_keys: List[FactoidPrivateKey] = dataclasses.field(init=False)
+    _txs: List[Transaction] = dataclasses.field(init=False, default_factory=list)
+    _signer_keys: List[FactoidPrivateKey] = dataclasses.field(init=False, default_factory=list)
 
     def add_transaction(self, tx: Transaction) -> None:
         self._txs.append(tx)
@@ -117,17 +119,20 @@ class TransactionsEntry:
     def add_signer(self, key: FactoidPrivateKey) -> None:
         self._signer_keys.append(key)
 
-    @property
-    def external_ids(self):
+    def sign(self) -> Tuple[List[bytes], bytes]:
         """
-        Using the given Factoid private key, add a signature to the transaction entry as defined by:
+        Sign the object using all private keys added to this object. Signature scheme is detailed here:
         https://github.com/Factom-Asset-Tokens/FAT/blob/master/fatips/103.md#salting-hashing-and-signing
+
+        :return: A tuple containing the list of external ids, then the content (all as bytes)
         """
-        ids = [self.timestamp.encode()]
-        content = self.content
+        tx_payload = {"transactions": [tx.to_dict() for tx in self._txs]}
+        content = json.dumps(tx_payload, separators=(",", ":")).encode()
+
+        external_ids = [self.timestamp.encode()]
         for i, key in enumerate(self._signer_keys):
             rcd = b"\x01" + key.get_factoid_address().key_bytes
-            ids.append(rcd)
+            external_ids.append(rcd)
 
             message = bytearray()
             message.extend(str(i).encode())
@@ -136,27 +141,77 @@ class TransactionsEntry:
             message.extend(content)
             message_hash = hashlib.sha512(message).digest()
             signature = key.sign(message_hash)
-            ids.append(signature)
+            external_ids.append(signature)
 
-        return ids
+        return external_ids, content
 
-    @property
-    def content(self):
-        tx_payload = {"transactions": [tx.to_dict() for tx in self._txs]}
-        return json.dumps(tx_payload, separators=(",", ":")).encode()
-
-    def is_valid(self):
+    @classmethod
+    def from_entry(cls, external_ids: List[bytes], content: bytes):
         """
-        Returns True if the structure of all transactions are sane and able to be executed.
-        Does not take balances or conversion rates into account
+        Parses an entry (the external_ids and content) and tries to construct a TransactionEntry.
+        If it does not have the proper structure or all required signatures to cover inputs, None will be returned.
         """
-        for tx in self._txs:
+        if len(external_ids) < 3 or len(external_ids) % 2 != 1:
+            return None  # Number of external ids = 1 + 2 * N, where N is number of signatures >= 1
+
+        timestamp = external_ids[0]
+
+        # Gather all (public key, signature) pairs from the external ids
+        full_signatures = external_ids[1:]
+        observed_signatures: List[Tuple[FactoidAddress, bytes]] = []
+        observed_signers: Set[str] = set()
+        for i, rcd in enumerate(full_signatures[::2]):
+            signature = full_signatures[2 * i + 1]
+            if len(rcd) != 33 or len(signature) != 64:
+                return None
+            address_bytes = rcd[1:]
+            address = FactoidAddress(key_bytes=address_bytes)
+            observed_signatures.append((address, signature))
+            observed_signers.add(address.to_string())
+
+        # Check that the content field has a valid json with a "transactions" list
+        try:
+            tx_payload = json.loads(content.decode())
+        except ValueError:
+            return None
+        if "transactions" not in tx_payload:
+            return None
+        tx_list = tx_payload["transactions"]
+        if type(tx_list) != list:
+            return None
+
+        # Check that all included inputs are valid and collect the keys we need to have signatures for
+        e = TransactionEntry(timestamp=timestamp.decode())
+        for tx_dict in tx_list:
+            if type(tx_dict) != dict:
+                return None
+            tx = Transaction(
+                input=tx_dict.get("input"), outputs=tx_dict.get("outputs"), metadata=tx_dict.get("metadata")
+            )
             if not tx.is_valid():
-                return False
-        return True
+                return None
+            e.add_transaction(tx)
+            if tx.input["address"] not in observed_signers:
+                return None  # Missing this input signer, not a valid entry
+
+        # Finally check all the signatures
+        for i, full_signature in enumerate(observed_signatures):
+            key, signature = full_signature
+
+            message = bytearray()
+            message.extend(str(i).encode())
+            message.extend(timestamp)
+            message.extend(CHAIN_ID)
+            message.extend(content)
+            message_hash = hashlib.sha512(message).digest()
+            if not key.verify(signature, message_hash):
+                return None
+
+        return e
 
 
-def send(txs_entry: TransactionsEntry, ec_address: ECAddress):
+def send(tx_entry: TransactionEntry, ec_address: ECAddress):
     factomd = Factomd(ec_address=ec_address.to_string())
     walletd = FactomWalletd()
-    walletd.new_entry(factomd=factomd, chain_id=CHAIN_ID, ext_ids=txs_entry.external_ids, content=txs_entry.content)
+    external_ids, content = tx_entry.sign()
+    walletd.new_entry(factomd=factomd, chain_id=CHAIN_ID, ext_ids=external_ids, content=content)
