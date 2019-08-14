@@ -2,6 +2,8 @@ import dataclasses
 import datetime
 import hashlib
 import json
+import numpy as np
+from collections import defaultdict
 from dataclasses import dataclass
 from factom import Factomd, FactomWalletd
 from factom_keys.ec import ECAddress
@@ -15,8 +17,8 @@ CHAIN_ID = ""  # TODO: set transactions.CHAIN_ID
 
 @dataclass
 class Transaction:
-    input: Dict[str, Any] = None
-    outputs: List[Dict[str, Any]] = None
+    input: Dict[str, Any] = dataclasses.field(default_factory=dict)
+    outputs: List[Dict[str, Any]] = dataclasses.field(default_factory=list)
     metadata: str = None
 
     def set_input(self, address: FactoidAddress, asset_type: str, amount: int = None):
@@ -37,8 +39,6 @@ class Transaction:
         :param amount: The amount of `asset_type` tokens being asked for
         :return:
         """
-        if self.outputs is None:
-            self.outputs = []
         output = dict()
         if address is not None:
             output["address"] = address.to_string()
@@ -75,9 +75,8 @@ class Transaction:
             return False  # Input type must be a valid pegged asset
 
         input_amount = self.input.get("amount")
-        if input_amount is not None:
-            if type(input_amount) != int or input_amount < 0:
-                return False  # Input amount must be None or a positive integer
+        if type(input_amount) != int or input_amount < 0:
+            return False  # Input amount must  a positive integer
 
         if type(self.outputs) != list:
             return False
@@ -104,6 +103,43 @@ class Transaction:
                 if type(output_amount) != int or output_amount < 0:
                     return False  # Output amount must be None or a positive integer
         return True
+
+    def get_deltas(self, rates: Dict[str, np.float64]):
+        """
+        Returns the deltas by address that result from executing this transaction. If any output is a conversion, it
+        will be executed against the given rates dictionary passed in.
+        """
+        deltas = defaultdict(lambda: defaultdict(int))
+        input_address = FactoidAddress(address_string=self.input["address"]).rcd_hash
+        input_amount_remaining = self.input.get("amount")
+        input_type = self.input.get("type")
+        for output in self.outputs:
+            output_address = FactoidAddress(address_string=output["address"]).rcd_hash
+            output_type = output.get("type", input_type)  # If no output type, assume input type
+            if input_type == output_type:
+                # Like-kind Transaction
+                # If no output amount specified, take the rest of the inputs
+                output_delta = output.get("amount", input_amount_remaining)
+                input_amount_remaining = 0
+            elif output.get("amount") is None:
+                # Conversion, no output amount
+                # Convert all remaining input to this output
+                output_delta = np.trunc(np.float64(input_amount_remaining) * rates[input_type] / rates[output_type])
+                input_amount_remaining = 0
+            else:
+                # Conversion, output amount given
+                # Try to get all outputs from the remaining inputs
+                output_delta = output.get("amount")
+                input_amount_remaining -= np.trunc(np.float64(output_delta) * rates[output_type] / rates[input_type])
+
+            deltas[output_address][output["type"]] += output_delta
+
+        if input_amount_remaining < 0:
+            raise ValueError("Inputs do not cover outputs")
+
+        #  Subtract the amount of inputs used, keeping the rest at the same address
+        deltas[input_address][self.input["type"]] -= self.input["amount"] - input_amount_remaining
+        return deltas
 
 
 @dataclass
@@ -208,6 +244,19 @@ class TransactionEntry:
                 return None
 
         return e
+
+    def get_deltas(self, rates: Dict[str, np.float64]):
+        """
+        Computes and returns the deltas that result from this transaction.
+        If it's a conversion, rates must be passed in as well.
+        """
+        deltas: Dict[bytes, Dict[str, int]] = {}
+        for tx in self._txs:
+            sub_deltas = tx.get_deltas(rates)
+            for address, asset_deltas in sub_deltas:
+                for ticker, delta in asset_deltas.items():
+                    deltas[address][ticker] += delta
+        return deltas
 
 
 def send(tx_entry: TransactionEntry, ec_address: ECAddress):
