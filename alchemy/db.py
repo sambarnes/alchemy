@@ -11,7 +11,7 @@ FACTOID_HEAD = b"FactoidHead"
 BALANCES = b"Balances"
 WINNERS = b"Winners"
 
-BalanceMap = Dict[str, float]
+BalanceMap = Dict[str, int]
 
 
 class AlchemyDB:
