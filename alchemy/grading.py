@@ -31,7 +31,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
     top50_by_height = {}
     current_block_records = []
     current_height = height_last_parsed
-    chain_id = consts.MAINNET_CHAIN_ID if not is_testnet else consts.TESTNET_CHAIN_ID
+    chain_id = consts.OPR_CHAIN_ID
     entries = get_entries_from_height(factomd, chain_id, height_last_parsed + 1, True)
     for e in entries:
         if current_height != e["dbheight"]:

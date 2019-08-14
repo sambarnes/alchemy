@@ -12,8 +12,6 @@ from typing import Any, Dict, List, Set, Tuple
 
 import alchemy.consts as consts
 
-CHAIN_ID = ""  # TODO: set transactions.CHAIN_ID
-
 
 @dataclass
 class Transaction:
@@ -173,7 +171,7 @@ class TransactionEntry:
             message = bytearray()
             message.extend(str(i).encode())
             message.extend(self.timestamp.encode())
-            message.extend(CHAIN_ID)
+            message.extend(consts.TRANSACTIONS_CHAIN_ID)
             message.extend(content)
             message_hash = hashlib.sha512(message).digest()
             signature = key.sign(message_hash)
@@ -237,7 +235,7 @@ class TransactionEntry:
             message = bytearray()
             message.extend(str(i).encode())
             message.extend(timestamp)
-            message.extend(CHAIN_ID)
+            message.extend(consts.TRANSACTIONS_CHAIN_ID)
             message.extend(content)
             message_hash = hashlib.sha512(message).digest()
             if not key.verify(signature, message_hash):
@@ -263,4 +261,4 @@ def send(tx_entry: TransactionEntry, ec_address: ECAddress):
     factomd = Factomd(ec_address=ec_address.to_string())
     walletd = FactomWalletd()
     external_ids, content = tx_entry.sign()
-    walletd.new_entry(factomd=factomd, chain_id=CHAIN_ID, ext_ids=external_ids, content=content)
+    walletd.new_entry(factomd=factomd, chain_id=consts.TRANSACTIONS_CHAIN_ID, ext_ids=external_ids, content=content)
