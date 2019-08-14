@@ -75,7 +75,7 @@ class Transaction:
             return False  # Input type must be a valid pegged asset
 
         input_amount = self.input.get("amount")
-        if type(input_amount) != int or input_amount < 0:
+        if type(input_amount) not in {int, float} or input_amount < 0:
             return False  # Input amount must  a positive integer
 
         if type(self.outputs) != list:
@@ -100,7 +100,7 @@ class Transaction:
                 if input_amount is None:
                     return False  # Input amount is None, output amount must not be None
             else:
-                if type(output_amount) != int or output_amount < 0:
+                if type(output_amount) not in {int, float} or output_amount < 0:
                     return False  # Output amount must be None or a positive integer
         return True
 

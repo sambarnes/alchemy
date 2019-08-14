@@ -250,7 +250,7 @@ class TestTransactions(unittest.TestCase):
         }
 
         valid_cases = {
-            "single output": {
+            "single output transaction": {
                 "tx": {
                     "input": {
                         "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
@@ -270,7 +270,7 @@ class TestTransactions(unittest.TestCase):
                     },
                 },
             },
-            "multiple outputs": {
+            "multiple output transaction": {
                 "tx": {
                     "input": {
                         "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
@@ -299,25 +299,23 @@ class TestTransactions(unittest.TestCase):
                     },
                 },
             },
-            "FCT -> XBT: no output amount": {
+            "one output conversion no output amount": {
                 "tx": {
                     "input": {
                         "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
                         "type": "FCT",
                         "amount": 50e8,
                     },
-                    "outputs": [{"address": "FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC", "type": "XBT"}],
+                    "outputs": [{"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "XBT"}],
                 },
                 "expected_deltas": {
                     FactoidAddress(address_string="FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q").rcd_hash: {
-                        "FCT": -50e8
-                    },
-                    FactoidAddress(address_string="FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC").rcd_hash: {
-                        "XBT": np.trunc(50e8 * rates["FCT"] / rates["XBT"])
-                    },
+                        "FCT": -50e8,
+                        "XBT": np.trunc(50e8 * rates["FCT"] / rates["XBT"]),
+                    }
                 },
             },
-            "FCT -> XBT: with output amount": {
+            "one output conversion with output amount": {
                 "tx": {
                     "input": {
                         "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
@@ -326,7 +324,7 @@ class TestTransactions(unittest.TestCase):
                     },
                     "outputs": [
                         {
-                            "address": "FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC",
+                            "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
                             "type": "XBT",
                             "amount": 1e6,
                         }
@@ -334,16 +332,73 @@ class TestTransactions(unittest.TestCase):
                 },
                 "expected_deltas": {
                     FactoidAddress(address_string="FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q").rcd_hash: {
-                        "FCT": -np.trunc(1e6 * rates["XBT"] / rates["FCT"])
+                        "FCT": -np.trunc(1e6 * rates["XBT"] / rates["FCT"]),
+                        "XBT": 1e6,
+                    }
+                },
+            },
+            "two output conversion with amounts": {
+                "tx": {
+                    "input": {
+                        "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                        "type": "FCT",
+                        "amount": 50e8,
                     },
-                    FactoidAddress(address_string="FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC").rcd_hash: {
-                        "XBT": 1e6
+                    "outputs": [
+                        {
+                            "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                            "type": "XBT",
+                            "amount": 1e3,
+                        },
+                        {
+                            "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                            "type": "USD",
+                            "amount": 1e3,
+                        },
+                    ],
+                },
+                "expected_deltas": {
+                    FactoidAddress(address_string="FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q").rcd_hash: {
+                        "FCT": -(
+                            np.trunc(1e3 * rates["XBT"] / rates["FCT"]) + np.trunc(1e3 * rates["USD"] / rates["FCT"])
+                        ),
+                        "XBT": 1e3,
+                        "USD": 1e3,
+                    }
+                },
+            },
+            "two output conversion, first has an amount": {
+                "tx": {
+                    "input": {
+                        "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                        "type": "FCT",
+                        "amount": 50e8,
                     },
+                    "outputs": [
+                        {
+                            "address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q",
+                            "type": "XBT",
+                            "amount": 1e3,
+                        },
+                        {"address": "FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q", "type": "USD"},
+                    ],
+                },
+                "expected_deltas": {
+                    FactoidAddress(address_string="FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q").rcd_hash: {
+                        "FCT": -50e8,
+                        "XBT": 1e3,
+                        "USD": np.trunc(
+                            (50e8 - np.float64(np.trunc(1e3 * rates["XBT"] / rates["FCT"])))
+                            * rates["FCT"]
+                            / rates["USD"]
+                        ),
+                    }
                 },
             },
         }
         for name, case in valid_cases.items():
             tx = Transaction.from_dict(case["tx"])
+            self.assertTrue(tx.is_valid(), f'Case "{name}"')
             deltas = tx.get_deltas(rates)
             self.assertEqual(deltas, case["expected_deltas"], f'Case "{name}": \n{deltas}\n{case["expected_deltas"]}')
 
