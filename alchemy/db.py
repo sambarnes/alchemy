@@ -8,6 +8,7 @@ from typing import Dict, List, Union
 
 OPR_HEAD = b"OPRHead"
 FACTOID_HEAD = b"FactoidHead"
+TRANSACTION_HEAD = b"TxHead"
 BALANCES = b"Balances"
 WINNERS = b"Winners"
 
@@ -42,6 +43,14 @@ class AlchemyDB:
     def put_factoid_head(self, height: int):
         height_bytes = struct.pack(">I", height)
         self._db.put(FACTOID_HEAD, height_bytes)
+
+    def get_transaction_head(self) -> int:
+        height_bytes = self._db.get(TRANSACTION_HEAD)
+        return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
+
+    def put_transaction_head(self, height: int):
+        height_bytes = struct.pack(">I", height)
+        self._db.put(TRANSACTION_HEAD, height_bytes)
 
     def get_balances(self, address: Union[bytes, str]) -> Union[None, Dict[str, int]]:
         """Gets a map of balances for the given address.

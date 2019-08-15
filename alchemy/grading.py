@@ -1,4 +1,3 @@
-import factom
 import hashlib
 import numpy as np
 import pylxr

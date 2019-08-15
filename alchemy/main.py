@@ -6,6 +6,7 @@ from factom import Factomd
 
 import alchemy.burning
 import alchemy.grading
+import alchemy.transactions
 import alchemy.rpc
 from alchemy.db import AlchemyDB
 
@@ -37,9 +38,10 @@ async def monitor_consumer(q: asyncio.Queue, database: AlchemyDB, is_testnet: bo
     factomd = Factomd()
     lxr = pylxr.LXR(map_size_bits=30)
     while True:
-        msg = await q.get()
-        alchemy.grading.run(factomd, lxr, database, is_testnet)
-        alchemy.burning.find_new_burns(factomd, database, is_testnet)
+        height = await q.get()
+        alchemy.grading.run(factomd, height, lxr, database, is_testnet)
+        alchemy.burning.find_new_burns(factomd, height, database, is_testnet)
+        alchemy.transactions.run_parser(factomd, height, database)
         q.task_done()
         print("Done. Waiting for next block...")
 
