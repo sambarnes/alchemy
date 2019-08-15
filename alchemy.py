@@ -102,16 +102,9 @@ def reset():
 
 
 @main.command()
-def get_opr_head():
-    """Get the highest OPR Entry block parsed"""
-    result = alchemy.rpc.get_opr_head()
-    print(json.dumps(result))
-
-
-@main.command()
-def get_factoid_head():
-    """Get the highest Factoid block parsed"""
-    result = alchemy.rpc.get_factoid_head()
+def get_sync_head():
+    """Get the highest block parsed"""
+    result = alchemy.rpc.get_sync_head()
     print(json.dumps(result))
 
 

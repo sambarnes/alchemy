@@ -6,9 +6,8 @@ from factom_keys.fct import FactoidAddress
 from typing import Dict, List, Union
 
 
-OPR_HEAD = b"OPRHead"
-FACTOID_HEAD = b"FactoidHead"
-TRANSACTION_HEAD = b"TxHead"
+SYNC_HEAD = b"SyncHead"
+WINNERS_HEAD = b"WinnersHead"
 BALANCES = b"Balances"
 WINNERS = b"Winners"
 
@@ -28,29 +27,13 @@ class AlchemyDB:
     def close(self):
         self._db.close()
 
-    def get_opr_head(self) -> int:
-        height_bytes = self._db.get(OPR_HEAD)
+    def get_sync_head(self) -> int:
+        height_bytes = self._db.get(SYNC_HEAD)
         return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
 
-    def put_opr_head(self, height: int):
+    def put_sync_head(self, height: int):
         height_bytes = struct.pack(">I", height)
-        self._db.put(OPR_HEAD, height_bytes)
-
-    def get_factoid_head(self) -> int:
-        height_bytes = self._db.get(FACTOID_HEAD)
-        return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
-
-    def put_factoid_head(self, height: int):
-        height_bytes = struct.pack(">I", height)
-        self._db.put(FACTOID_HEAD, height_bytes)
-
-    def get_transaction_head(self) -> int:
-        height_bytes = self._db.get(TRANSACTION_HEAD)
-        return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
-
-    def put_transaction_head(self, height: int):
-        height_bytes = struct.pack(">I", height)
-        self._db.put(TRANSACTION_HEAD, height_bytes)
+        self._db.put(SYNC_HEAD, height_bytes)
 
     def get_balances(self, address: Union[bytes, str]) -> Union[None, Dict[str, int]]:
         """Gets a map of balances for the given address.
@@ -79,7 +62,15 @@ class AlchemyDB:
         else:
             self.put_balances(address, deltas)
 
-    def get_winners(self, height: int, encode_to_hex: bool = False) -> List[bytes]:
+    def get_winners_head(self) -> int:
+        height_bytes = self._db.get(WINNERS_HEAD)
+        return -1 if height_bytes is None else struct.unpack(">I", height_bytes)[0]
+
+    def put_winners_head(self, height: int):
+        height_bytes = struct.pack(">I", height)
+        self._db.put(WINNERS_HEAD, height_bytes)
+
+    def get_winners(self, height: int, encode_to_hex: bool = False) -> Union[List[bytes], List[str]]:
         sub_db = self._db.prefixed_db(WINNERS)
         height_bytes = struct.pack(">I", height)
         winners_bytes = sub_db.get(height_bytes)
@@ -93,3 +84,7 @@ class AlchemyDB:
         height_bytes = struct.pack(">I", height)
         winners_bytes = b"".join(winners)
         sub_db.put(height_bytes, winners_bytes)
+
+    def get_highest_winners(self, encode_to_hex: bool = False) -> Union[List[bytes], List[str]]:
+        height = self.get_winners_head()
+        return [] if height == -1 else self.get_winners(height, encode_to_hex)

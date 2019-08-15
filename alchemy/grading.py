@@ -1,99 +1,37 @@
 import hashlib
 import numpy as np
 import pylxr
-from collections import defaultdict
-from colorama import Fore as color
 from factom import Factomd
-from factom_keys.fct import FactoidAddress
 from typing import List, Union
 
 import alchemy.consts as consts
-import alchemy.csv_exporting
-from alchemy.db import AlchemyDB
 from alchemy.opr import OPR, AssetEstimates
 
 
-def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False) -> None:
-    """Grades all unseen entry blocks for the OPR chain, caches results when done"""
-    # Initialize previous winners array
-    height_last_parsed = database.get_opr_head()
-    print(f"\nHighest OPR Entry Block previously parsed: {height_last_parsed}")
-    if height_last_parsed == -1:
-        previous_winners = ["" for _ in range(10)]
-    else:
-        previous_winners_full = database.get_winners(height_last_parsed)
-        previous_winners = [h[:8].hex() for h in previous_winners_full]
-
-    # First pass of OPR validation
-    # Collect all sane entries in each block, sorting by self reported difficulty as we go
-    winners_by_height = {}
-    top50_by_height = {}
+def run(height: int, previous_winners: List[str], factomd: Factomd, lxr: pylxr.LXR, is_testnet: bool = False):
+    """Grades all entries in the OPR chain at the given height"""
     current_block_records = []
-    current_height = height_last_parsed
     chain_id = consts.OPR_CHAIN_ID
-    entries = factomd.read_chain(chain_id, from_height=height_last_parsed + 1, include_entry_context=True)
+    entries = factomd.read_chain(chain_id, from_height=height, include_entry_context=True)
     for e in entries:
-        if current_height != e["dbheight"]:
-            if 10 <= len(current_block_records):
-                # We have enough sane records to grade. Sort by self reported difficulty do that now
-                current_block_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-                winners, top50 = grade_records(lxr, previous_winners, current_block_records)
-                if winners is not None:
-                    previous_winners = [record.entry_hash[:8].hex() for record in winners]
-                    winners_by_height[current_height] = winners
-                    top50_by_height[current_height] = top50
-                    print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
-                else:
-                    print(f"{color.RED}Skipped OPR block {current_height} (<10 records passed grading){color.RESET}")
-            elif current_height != height_last_parsed:
-                print(f"{color.RED}Skipped OPR block {current_height} (<10 records eligible for grading){color.RESET}")
-            current_block_records = []
-            current_height = e["dbheight"]
-
+        if height < e["dbheight"]:
+            break
         # If it's a valid OPR, compute its hash and append to current block OPRs
         entry_hash = bytes.fromhex(e["entryhash"])
         external_ids, content, timestamp = e["extids"], e["content"], e["timestamp"]
         record = OPR.from_entry(entry_hash, external_ids, content, timestamp)
-        if record is None or record.height != current_height:
+        if record is None or record.height != height:
             continue
         record.opr_hash = hashlib.sha256(content).digest()
         current_block_records.append(record)
 
     if 10 <= len(current_block_records):
-        # (Repeat from above, just to flush out the last block of records.)
         # We have enough sane records to grade. Sort by self reported difficulty do that now
         current_block_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
-        winners, top50 = grade_records(lxr, previous_winners, current_block_records)
-        if winners is not None:
-            previous_winners = [record.entry_hash[:8].hex() for record in winners]
-            winners_by_height[current_height] = winners
-            top50_by_height[current_height] = top50
-            print(f"{color.GREEN}Graded OPR block {current_height} (winners: {previous_winners}){color.RESET}")
-        else:
-            print(f"{color.RED}Skipped OPR block {current_height} (<10 records passed grading){color.RESET}")
-    elif current_height != height_last_parsed:
-        print(f"{color.RED}Skipped OPR block {current_height} (<10 records eligible for grading){color.RESET}")
+        return grade_records(lxr, previous_winners, current_block_records)
 
-    print("Finished grading all unseen blocks")
-    print("Updating OPR database...")
-    pnt_deltas = defaultdict(float)
-    # Update winners in database. Calculate PNT reward deltas. Export winning prices to csv
-    for height, records in winners_by_height.items():
-        winners = [record.entry_hash for record in records[:10]]
-        database.put_winners(height, winners)
-        for i, record in enumerate(records):
-            pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
-        alchemy.csv_exporting.write_prices(records[0])
-    # Export top and bottom difficulties per block to csv
-    for height, records in top50_by_height.items():
-        alchemy.csv_exporting.write_difficulty(records[0], records[-1])
-    # Update PNT balances in database
-    for address, delta in pnt_deltas.items():
-        address_bytes = FactoidAddress(address_string=address).rcd_hash
-        database.update_balances(address_bytes, {consts.PNT: delta})
-    # Update database checkpoint for OPR chain
-    if height_last_parsed < current_height:
-        database.put_opr_head(current_height)
+    # Not enough sane records this block to even try grading
+    return None, None
 
 
 def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):

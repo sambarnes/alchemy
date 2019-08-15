@@ -12,8 +12,7 @@ from alchemy.db import AlchemyDB
 
 
 def register_database_functions(database: AlchemyDB):
-    aiorpc.register("opr_head", database.get_opr_head)
-    aiorpc.register("factoid_head", database.get_factoid_head)
+    aiorpc.register("sync_head", database.get_sync_head)
     aiorpc.register("winners", database.get_winners)
     aiorpc.register("balances", database.get_balances)
 
@@ -27,20 +26,12 @@ def _make_call(coro):
     return result
 
 
-def get_opr_head():
+def get_sync_head():
     async def f(client):
-        return await client.call("opr_head")
+        return await client.call("sync_head")
 
     head = _make_call(f)
-    return {"opr_head": head}
-
-
-def get_factoid_head():
-    async def f(client):
-        return await client.call("factoid_head")
-
-    head = _make_call(f)
-    return {"factoid_head": head}
+    return {"sync_head": head}
 
 
 def get_winners(height: int):
