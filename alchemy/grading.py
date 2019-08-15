@@ -32,7 +32,7 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
     current_block_records = []
     current_height = height_last_parsed
     chain_id = consts.OPR_CHAIN_ID
-    entries = get_entries_from_height(factomd, chain_id, height_last_parsed + 1, True)
+    entries = factomd.read_chain(chain_id, from_height=height_last_parsed + 1, include_entry_context=True)
     for e in entries:
         if current_height != e["dbheight"]:
             if 10 <= len(current_block_records):
@@ -95,30 +95,6 @@ def run(factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool 
     # Update database checkpoint for OPR chain
     if height_last_parsed < current_height:
         database.put_opr_head(current_height)
-
-
-def get_entries_from_height(factomd: Factomd, chain_id: str, height: int, include_entry_context: bool = False) -> list:
-    """A generator that yields all entries (in order) starting at a given block height."""
-    # Walk the entry block chain backwards to build up a stack of entry blocks to fetch
-    entry_blocks = []
-    keymr = factomd.chain_head(chain_id)["chainhead"]
-    while keymr != factom.client.NULL_BLOCK:
-        block = factomd.entry_block(keymr)
-        if block["header"]["dbheight"] < height:
-            break
-        entry_blocks.append(block)
-        keymr = block["header"]["prevkeymr"]
-
-    # Continuously pop off the stack and yield each entry one by one (in the order that they appear in the block)
-    while len(entry_blocks) > 0:
-        entry_block = entry_blocks.pop()
-        for entry_pointer in reversed(entry_block["entrylist"]):
-            entry = factomd.entry(entry_pointer["entryhash"])
-            if include_entry_context:
-                entry["entryhash"] = entry_pointer["entryhash"]
-                entry["timestamp"] = entry_pointer["timestamp"]
-                entry["dbheight"] = entry_block["header"]["dbheight"]
-            yield entry
 
 
 def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):
