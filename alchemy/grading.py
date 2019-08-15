@@ -11,17 +11,14 @@ from alchemy.opr import OPR, AssetEstimates
 def run(height: int, previous_winners: List[str], factomd: Factomd, lxr: pylxr.LXR, is_testnet: bool = False):
     """Grades all entries in the OPR chain at the given height"""
     current_block_records = []
-    chain_id = consts.OPR_CHAIN_ID
-    entries = factomd.read_chain(chain_id, from_height=height, include_entry_context=True)
+    entries = factomd.entries_at_height(consts.OPR_CHAIN_ID, height, include_entry_context=True)
     for e in entries:
-        if height < e["dbheight"]:
-            break
-        # If it's a valid OPR, compute its hash and append to current block OPRs
         entry_hash = bytes.fromhex(e["entryhash"])
         external_ids, content, timestamp = e["extids"], e["content"], e["timestamp"]
         record = OPR.from_entry(entry_hash, external_ids, content, timestamp)
         if record is None or record.height != height:
-            continue
+            continue  # Failed sanity check, throw it out
+        # It's a valid OPR, compute its hash and append to current block OPRs
         record.opr_hash = hashlib.sha256(content).digest()
         current_block_records.append(record)
 
@@ -30,13 +27,13 @@ def run(height: int, previous_winners: List[str], factomd: Factomd, lxr: pylxr.L
         current_block_records.sort(key=lambda x: x.self_reported_difficulty, reverse=True)
         return grade_records(lxr, previous_winners, current_block_records)
 
-    # Not enough sane records this block to even try grading
-    return None, None
+    return None, None  # Not enough sane records this block to even try grading
 
 
 def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):
-    """Given a list of previous winners (first 8 bytes of entry hashes in hex), grade all records
-    and return a list of the top 50, sorted by grade.
+    """
+    Given a list of previous winners (first 8 bytes of entry hashes in hex), grade all records
+    and return a list of winning 10 (sorted by grade) and a list of the top 50 (sorted by difficulty)
     """
     # First take top 50 by difficulty
     valid_records: List[OPR] = []
@@ -59,8 +56,8 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
     # TODO: opr.RemoveDuplicateSubmissions().
     #       Technically not needed, but should match reference implementation
 
-    graded_records = valid_records
     # Then calculate grade for each record in the top 50 and sort
+    graded_records = valid_records
     for i in range(len(graded_records) - 1, -1, -1):
         if i < 10:
             break
@@ -70,7 +67,7 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
         graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.self_reported_difficulty, reverse=True)
         graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.grade)
 
-    return graded_records[:10], valid_records  # Return top 50 in graded order, top 10 are the winners
+    return graded_records[:10], valid_records  # Return winners by grade, top 50 by difficulty
 
 
 def average_estimates(records: List[OPR]) -> AssetEstimates:

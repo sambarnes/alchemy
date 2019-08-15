@@ -33,7 +33,7 @@ async def run_protocol(database: AlchemyDB, is_testnet: bool = False):
 
 
 def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False):
-    # Initialize previous winners array
+    # 1) Grade OPRs at this height
     previous_winners_full = database.get_highest_winners()
     previous_winners = (
         [entry_hash[:8].hex() for entry_hash in previous_winners_full]
@@ -64,9 +64,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
     else:
         print(f"{color.RED}Skipped OPR block {height} (<10 records passed grading){color.RESET}")
 
-    print(f"Finished grading block {height}")
-
-    # Burns
+    # 2) Find new FCT --> pFCT burns
     try:
         burn_count, account_deltas = alchemy.burning.parse_factoid_block(height, factomd, is_testnet)
         for address, deltas in account_deltas.items():
@@ -74,6 +72,8 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         print(f"Parsed factoid block {height} (burns found: {burn_count})")
     except factom.exceptions.BlockNotFound:
         pass
+
+    # 3) Execute transactions
 
     database.put_sync_head(height)
 
