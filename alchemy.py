@@ -126,9 +126,12 @@ def get_winners(height):
 @main.command()
 @click.argument("address", type=str)
 @click.option("--testnet", is_flag=True)
-def get_balances(address, testnet):
+@click.option("--human", is_flag=True)
+def get_balances(address, testnet, human):
     """Get a list of all balances for the given address"""
     result = alchemy.rpc.get_balances(address)
+    if human:
+        result["balances"] = {ticker: value / 1e8 for ticker, value in result["balances"].items()}
     print(json.dumps(result))
 
 
