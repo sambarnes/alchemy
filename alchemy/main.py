@@ -33,14 +33,14 @@ async def run_protocol(database: AlchemyDB, is_testnet: bool = False):
 
 
 def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False):
-    # 1) Grade OPRs at this height
+    # 1) Grade OPRs
     previous_winners_full = database.get_highest_winners()
     previous_winners = (
         [entry_hash[:8].hex() for entry_hash in previous_winners_full]
         if len(previous_winners_full) != 0
         else ["" for _ in range(10)]
     )
-    winners, top50 = alchemy.grading.run(height, previous_winners, factomd, lxr, is_testnet)
+    winners, top50 = alchemy.grading.process_block(height, previous_winners, factomd, lxr, is_testnet)
     if winners is not None:
         # Update winners in database. Calculate PNT reward deltas. Export winning prices to csv
         winning_entry_hashes = [record.entry_hash for record in winners[:10]]
@@ -60,13 +60,15 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
             address_bytes = FactoidAddress(address_string=address).rcd_hash
             database.update_balances(address_bytes, {consts.PNT: delta})
 
+        rates = winners[0].asset_estimates
         print(f"{color.GREEN}Graded OPR block {height} (winners: {previous_winners}){color.RESET}")
     else:
+        rates = {}  # TODO: get rates from the last winner
         print(f"{color.RED}Skipped OPR block {height} (<10 records passed grading){color.RESET}")
 
     # 2) Find new FCT --> pFCT burns
     try:
-        burn_count, account_deltas = alchemy.burning.parse_factoid_block(height, factomd, is_testnet)
+        burn_count, account_deltas = alchemy.burning.process_block(height, factomd, is_testnet)
         for address, deltas in account_deltas.items():
             database.update_balances(address, deltas)
         print(f"Parsed factoid block {height} (burns found: {burn_count})")
@@ -74,6 +76,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         pass
 
     # 3) Execute transactions
+    alchemy.transactions.process_block(height, rates, factomd, database)
 
     database.put_sync_head(height)
 

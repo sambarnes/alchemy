@@ -5,7 +5,7 @@ from typing import Dict
 import alchemy.consts as consts
 
 
-def parse_factoid_block(height: int, factomd: Factomd, is_testnet: bool = False):
+def process_block(height: int, factomd: Factomd, is_testnet: bool = False):
     """Parse all unseen Factoid Blocks looking for FCT burn transactions"""
     expected_burn_address = consts.BurnAddresses.MAINNET.value if not is_testnet else consts.BurnAddresses.TESTNET.value
     all_account_deltas: Dict[bytes, Dict[str:float]] = {}

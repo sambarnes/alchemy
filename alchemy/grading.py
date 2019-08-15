@@ -8,7 +8,7 @@ import alchemy.consts as consts
 from alchemy.opr import OPR, AssetEstimates
 
 
-def run(height: int, previous_winners: List[str], factomd: Factomd, lxr: pylxr.LXR, is_testnet: bool = False):
+def process_block(height: int, previous_winners: List[str], factomd: Factomd, lxr: pylxr.LXR, is_testnet: bool = False):
     """Grades all entries in the OPR chain at the given height"""
     current_block_records = []
     entries = factomd.entries_at_height(consts.OPR_CHAIN_ID, height, include_entry_context=True)
