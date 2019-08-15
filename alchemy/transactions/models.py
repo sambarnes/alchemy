@@ -161,6 +161,7 @@ class TransactionEntry:
         tx_payload = {"transactions": [tx.to_dict() for tx in self._txs]}
         content = json.dumps(tx_payload, separators=(",", ":")).encode()
 
+        chain_id = consts.TRANSACTIONS_CHAIN_ID.encode()
         external_ids = [self.timestamp.encode()]
         for i, key in enumerate(self._signer_keys):
             rcd = b"\x01" + key.get_factoid_address().key_bytes
@@ -169,7 +170,7 @@ class TransactionEntry:
             message = bytearray()
             message.extend(str(i).encode())
             message.extend(self.timestamp.encode())
-            message.extend(consts.TRANSACTIONS_CHAIN_ID)
+            message.extend(chain_id)
             message.extend(content)
             message_hash = hashlib.sha512(message).digest()
             signature = key.sign(message_hash)
@@ -227,13 +228,14 @@ class TransactionEntry:
                 return None  # Missing this input signer, not a valid entry
 
         # Finally check all the signatures
+        chain_id = consts.TRANSACTIONS_CHAIN_ID.encode()
         for i, full_signature in enumerate(observed_signatures):
             key, signature = full_signature
 
             message = bytearray()
             message.extend(str(i).encode())
             message.extend(timestamp)
-            message.extend(consts.TRANSACTIONS_CHAIN_ID)
+            message.extend(chain_id)
             message.extend(content)
             message_hash = hashlib.sha512(message).digest()
             if not key.verify(signature, message_hash):

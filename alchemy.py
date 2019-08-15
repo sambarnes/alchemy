@@ -4,12 +4,14 @@ import click
 import factom
 import json
 from factom import Factomd, FactomWalletd
+from factom_keys.ec import ECAddress, ECPrivateKey
+from factom_keys.fct import FactoidAddress, FactoidPrivateKey
 from typing import List
 
 import alchemy.main
 import alchemy.consts as consts
 import alchemy.rpc
-from alchemy.db import AlchemyDB
+import alchemy.transactions.models
 
 
 HEADER = r"""
@@ -82,6 +84,68 @@ def burn(amount, fct_address, testnet, dry_run):
         tx_response = factomd.factoid_submit(tx["params"]["transaction"])
         print(f"TxID: {tx_response['txid']}")
     walletd.delete_transaction(tx_name)
+
+
+@main.command()
+@click.argument("amount", type=int)
+@click.argument("from_ticker", type=str)
+@click.argument("address", type=str)
+@click.option("--to", "-t", required=True, multiple=True, type=(int, str))
+@click.option("--ec-address", "-e", required=True, type=str)
+@click.option("--dry-run", is_flag=True)
+def convert(amount, from_ticker, address, to, ec_address, dry_run):
+    # Input validation
+    if from_ticker not in consts.ALL_ASSETS:
+        print(f"Error: invalid ticker symbol ({from_ticker})\n")
+        print(f"Possible values: {consts.ALL_ASSETS}")
+        return
+    if not FactoidAddress.is_valid(address):
+        print(f"Error: invalid source address ({address}), must be a valid Factoid address")
+        return
+    if not ECAddress.is_valid(ec_address):
+        print(f"Error: invalid EC address ({ec_address})")
+        return
+
+    # Get the singer private key from walletd
+    factomd = Factomd()
+    walletd = FactomWalletd()
+    try:
+        address_secret_string = walletd.address(address)["secret"]
+    except factom.exceptions.InternalError:
+        print(f"Error: Factoid address ({address}) not found in wallet")
+        return
+
+    input_signer = FactoidPrivateKey(key_string=address_secret_string)
+    tx = alchemy.transactions.models.Transaction()
+    tx.set_input(address=input_signer.get_factoid_address(), asset_type=from_ticker, amount=amount)
+
+    output_address = input_signer.get_factoid_address()
+    for amount, ticker in to:
+        if ticker not in consts.ALL_ASSETS:
+            print(f"Error: invalid ticker symbol ({ticker})\n")
+            print(f"Possible values: {consts.ALL_ASSETS}")
+            return
+        tx.add_output(address=output_address, asset_type=ticker, amount=amount)
+
+    tx_entry = alchemy.transactions.models.TransactionEntry()
+    tx_entry.add_transaction(tx)
+    tx_entry.add_signer(input_signer)
+    external_ids, content = tx_entry.sign()
+
+    if dry_run:
+        print(f"External-IDs: {[x.hex() for x in external_ids]}")
+        print(f"Content: {content.decode()}")
+        print("The above transaction was not sent.")
+        return
+
+    response = walletd.new_entry(
+        factomd=factomd,
+        chain_id=consts.TRANSACTIONS_CHAIN_ID,
+        ext_ids=external_ids,
+        content=content,
+        ec_address=ec_address,
+    )
+    print(f"Tx Sent: {response}")
 
 
 @main.command()

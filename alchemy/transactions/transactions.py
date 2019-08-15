@@ -1,6 +1,5 @@
 import numpy as np
-from factom import Factomd, FactomWalletd
-from factom_keys.ec import ECAddress
+from factom import Factomd
 from typing import Dict
 
 import alchemy.consts as consts
@@ -16,13 +15,6 @@ def process_block(height: int, rates: Dict[str, np.float64], factomd: Factomd, d
             print(f"Invalid transaction: {e}")
         else:
             print(f"Valid transaction: {tx_entry.get_deltas(rates)}")
-
-
-def send(tx_entry: TransactionEntry, ec_address: ECAddress):
-    factomd = Factomd(ec_address=ec_address.to_string())
-    walletd = FactomWalletd()
-    external_ids, content = tx_entry.sign()
-    walletd.new_entry(factomd=factomd, chain_id=consts.TRANSACTIONS_CHAIN_ID, ext_ids=external_ids, content=content)
 
 
 def execute_transaction_entry(database: AlchemyDB, tx_entry: TransactionEntry, rates: Dict[str, np.float64]):
