@@ -22,14 +22,12 @@ def _make_call(coro):
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
     client = aiorpc.RPCClient("127.0.0.1", 6000)
-    result = loop.run_until_complete(coro(client))
-    client.close()
-    return result
+    return loop.run_until_complete(coro(client))
 
 
 def get_sync_head():
     async def f(client):
-        return await client.call("sync_head")
+        return await client.call_once("sync_head")
 
     head = _make_call(f)
     return {"sync_head": head}
@@ -37,7 +35,7 @@ def get_sync_head():
 
 def get_winners(height: int):
     async def f(client):
-        return await client.call("winners", height, True)
+        return await client.call_once("winners", height, True)
 
     winning_entry_hashes = _make_call(f)
     winners = (
@@ -50,7 +48,7 @@ def get_winners(height: int):
 
 def get_balances(address: str):
     async def f(client):
-        return await client.call("balances", address)
+        return await client.call_once("balances", address)
 
     factomd = factom.Factomd()
     try:
@@ -67,7 +65,7 @@ def get_balances(address: str):
 
 def get_rates(height: int):
     async def f(client):
-        return await client.call("rates", height)
+        return await client.call_once("rates", height)
 
     return {"rates": _make_call(f)}
 
