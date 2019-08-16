@@ -128,7 +128,7 @@ class Transaction:
                 output_delta = output.get("amount")
                 input_amount_remaining -= np.trunc(np.float64(output_delta) * rates[output_type] / rates[input_type])
 
-            deltas[output_address][output["type"]] += output_delta
+            deltas[output_address][output.get("type", input_type)] += output_delta
 
         if input_amount_remaining < 0:
             raise ValueError("Inputs do not cover outputs")

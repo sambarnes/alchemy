@@ -149,6 +149,70 @@ def convert(amount, from_ticker, address, to, ec_address, dry_run):
 
 
 @main.command()
+@click.argument("amount", type=int)
+@click.argument("from_ticker", type=str)
+@click.argument("address", type=str)
+@click.option("--to", "-t", required=True, multiple=True, type=(int, str))
+@click.option("--ec-address", "-e", required=True, type=str)
+@click.option("--dry-run", is_flag=True)
+def send(amount, from_ticker, address, to, ec_address, dry_run):
+    # Input validation
+    if from_ticker not in consts.ALL_ASSETS:
+        print(f"Error: invalid ticker symbol ({from_ticker})\n")
+        print(f"Possible values: {consts.ALL_ASSETS}")
+        return
+    if not FactoidAddress.is_valid(address):
+        print(f"Error: invalid source address ({address}), must be a valid Factoid address")
+        return
+    if not ECAddress.is_valid(ec_address):
+        print(f"Error: invalid EC address ({ec_address})")
+        return
+
+    # Get the singer private key from walletd
+    factomd = Factomd()
+    walletd = FactomWalletd()
+    try:
+        address_secret_string = walletd.address(address)["secret"]
+    except factom.exceptions.InternalError:
+        print(f"Error: Factoid address ({address}) not found in wallet")
+        return
+
+    input_signer = FactoidPrivateKey(key_string=address_secret_string)
+    tx = alchemy.transactions.models.Transaction()
+    tx.set_input(address=input_signer.get_factoid_address(), asset_type=from_ticker, amount=amount)
+
+    input_remaining = amount
+    for output_amount, output_address in to:
+        if input_remaining < output_amount:
+            print(f"Error: not enough inputs to cover outputs")
+        if not FactoidAddress.is_valid(output_address):
+            print(f"Error: invalid output address ({output_address})")
+            return
+        tx.add_output(address=FactoidAddress(address_string=output_address), amount=output_amount)
+        input_remaining -= output_amount
+
+    tx_entry = alchemy.transactions.models.TransactionEntry()
+    tx_entry.add_transaction(tx)
+    tx_entry.add_signer(input_signer)
+    external_ids, content = tx_entry.sign()
+
+    if dry_run:
+        print(f"External-IDs: {[x.hex() for x in external_ids]}")
+        print(f"Content: {content.decode()}")
+        print("The above transaction was not sent.")
+        return
+
+    response = walletd.new_entry(
+        factomd=factomd,
+        chain_id=consts.TRANSACTIONS_CHAIN_ID,
+        ext_ids=external_ids,
+        content=content,
+        ec_address=ec_address,
+    )
+    print(f"Tx Sent: {response}")
+
+
+@main.command()
 @click.confirmation_option(prompt="Are you sure you want to reset the database?")
 def reset():
     """Delete the current alchemy database"""

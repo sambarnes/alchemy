@@ -44,7 +44,7 @@ class AlchemyDB:
         if type(address) == str:
             address = FactoidAddress(address_string=address).rcd_hash
         balances_bytes = sub_db.get(address)
-        return None if balances_bytes is None else json.loads(balances_bytes.decode())
+        return {} if balances_bytes is None else json.loads(balances_bytes.decode())
 
     def put_balances(self, address: bytes, balances: BalanceMap):
         sub_db = self._db.prefixed_db(BALANCES)
