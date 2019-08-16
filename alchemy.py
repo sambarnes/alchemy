@@ -94,6 +94,7 @@ def burn(amount, fct_address, testnet, dry_run):
 @click.option("--ec-address", "-e", required=True, type=str)
 @click.option("--dry-run", is_flag=True)
 def convert(amount, from_ticker, address, to, ec_address, dry_run):
+    """Perform a conversion between assets"""
     # Input validation
     if from_ticker not in consts.ALL_ASSETS:
         print(f"Error: invalid ticker symbol ({from_ticker})\n")
@@ -156,6 +157,7 @@ def convert(amount, from_ticker, address, to, ec_address, dry_run):
 @click.option("--ec-address", "-e", required=True, type=str)
 @click.option("--dry-run", is_flag=True)
 def send(amount, from_ticker, address, to, ec_address, dry_run):
+    """Send a like-kind transaction"""
     # Input validation
     if from_ticker not in consts.ALL_ASSETS:
         print(f"Error: invalid ticker symbol ({from_ticker})\n")
@@ -253,6 +255,14 @@ def get_balances(address, testnet, human):
     result = alchemy.rpc.get_balances(address)
     if human:
         result["balances"] = {ticker: value / 1e8 for ticker, value in result["balances"].items()}
+    print(json.dumps(result))
+
+
+@main.command()
+@click.argument("height", type=int)
+def get_rates(height,):
+    """Get a list of all conversion rates for the given block height"""
+    result = alchemy.rpc.get_rates(height)
     print(json.dumps(result))
 
 

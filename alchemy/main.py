@@ -22,6 +22,8 @@ async def run_protocol(database: AlchemyDB, is_testnet: bool = False):
     factomd = Factomd()
     while True:
         sync_head = database.get_sync_head()
+        if sync_head == -1:
+            sync_head = consts.START_HEIGHT
         latest_block = factomd.heights()["directoryblockheight"]
         if latest_block == sync_head:
             await asyncio.sleep(15)

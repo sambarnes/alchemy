@@ -15,6 +15,7 @@ def register_database_functions(database: AlchemyDB):
     aiorpc.register("sync_head", database.get_sync_head)
     aiorpc.register("winners", database.get_winners)
     aiorpc.register("balances", database.get_balances)
+    aiorpc.register("rates", database.get_rates)
 
 
 def _make_call(coro):
@@ -62,6 +63,13 @@ def get_balances(address: str):
         balances = {}
     balances["FCT"] = fct_balance
     return {"balances": balances}
+
+
+def get_rates(height: int):
+    async def f(client):
+        return await client.call("rates", height)
+
+    return {"rates": _make_call(f)}
 
 
 def graph_prices(tickers: List[str], is_by_height: bool = False):
