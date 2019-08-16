@@ -248,10 +248,10 @@ class TransactionEntry:
         Computes and returns the deltas that result from this transaction.
         If it's a conversion, rates must be passed in as well.
         """
-        deltas: Dict[bytes, Dict[str, int]] = {}
+        deltas: Dict[bytes, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
         for tx in self._txs:
             sub_deltas = tx.get_deltas(rates)
-            for address, asset_deltas in sub_deltas:
+            for address, asset_deltas in sub_deltas.items():
                 for ticker, delta in asset_deltas.items():
                     deltas[address][ticker] += delta
         return deltas

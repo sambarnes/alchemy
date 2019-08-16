@@ -46,6 +46,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         winning_entry_hashes = [record.entry_hash for record in winners[:10]]
         database.put_winners(height, winning_entry_hashes)
         database.put_winners_head(height)
+        database.put_rates(height, winners[0].asset_estimates)
 
         pnt_deltas = defaultdict(float)
         for i, record in enumerate(winners):
@@ -63,7 +64,8 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         rates = winners[0].asset_estimates
         print(f"{color.GREEN}Graded OPR block {height} (winners: {previous_winners}){color.RESET}")
     else:
-        rates = {}  # TODO: get rates from the last winner
+        winners_head = database.get_winners_head()
+        rates = database.get_rates(winners_head) if winners_head != -1 else {}
         print(f"{color.RED}Skipped OPR block {height} (<10 records passed grading){color.RESET}")
 
     # 2) Find new FCT --> pFCT burns

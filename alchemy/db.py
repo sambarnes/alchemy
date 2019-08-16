@@ -10,6 +10,7 @@ SYNC_HEAD = b"SyncHead"
 WINNERS_HEAD = b"WinnersHead"
 BALANCES = b"Balances"
 WINNERS = b"Winners"
+RATES = b"Rates"
 
 BalanceMap = Dict[str, int]
 
@@ -88,3 +89,15 @@ class AlchemyDB:
     def get_highest_winners(self, encode_to_hex: bool = False) -> Union[List[bytes], List[str]]:
         height = self.get_winners_head()
         return [] if height == -1 else self.get_winners(height, encode_to_hex)
+
+    def get_rates(self, height: int) -> Dict[str, float]:
+        sub_db = self._db.prefixed_db(RATES)
+        height_bytes = struct.pack(">I", height)
+        rates_bytes = sub_db.get(height_bytes)
+        return None if rates_bytes is None else json.loads(rates_bytes.decode())
+
+    def put_rates(self, height: int, rates: Dict[str, float]) -> None:
+        sub_db = self._db.prefixed_db(RATES)
+        height_bytes = struct.pack(">I", height)
+        rates_bytes = json.dumps(rates, separators=(",", ":")).encode()
+        sub_db.put(height_bytes, rates_bytes)
