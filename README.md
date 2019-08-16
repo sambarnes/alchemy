@@ -24,14 +24,17 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  burn              Burn FCT for pFCT
-  get-balances      Get a list of all balances for the given address
-  get-factoid-head  Get the highest Factoid block parsed
-  get-opr-head      Get the highest OPR Entry block parsed
-  get-winners       Get winning records at the given block height
-  graph-prices      Show a graph for the prices of given tickers
-  reset             Delete the current alchemy database
-  run               Main entry point for the node
+  burn                Burn FCT for pFCT
+  convert             Perform a conversion between assets
+  get-balances        Get a list of all balances for the given address
+  get-rates           Get a list of conversion rates for the given block
+  get-sync-head       Get the highest block parsed
+  get-winners         Get winning records at the given block height
+  graph-difficulties  Graph the range of winning miner difficulties
+  graph-prices        Graph the prices of given tickers
+  reset               Delete the current alchemy database
+  run                 Main entry point for the node
+  send                Send a like-kind transaction
 ```
 
 ### Running the Grader
@@ -41,35 +44,29 @@ Example:
 ```
 $ ./alchemy.py run
 
-      o
-       o
-     ___
-     | |
-     | |
-     |o|             _      _
-    .' '.       __ _| | ___| |__   ___ _ __ ___  _   _
+      o       
+       o      
+     ___      
+     | |      
+     | |      
+     |o|             _      _                          
+    .' '.       __ _| | ___| |__   ___ _ __ ___  _   _ 
    /  o  \     / _` | |/ __| '_ \ / _ \ '_ ` _ \| | | |
   :____o__:   | (_| | | (__| | | |  __/ | | | | | |_| |
   '._____.'    \__,_|_|\___|_| |_|\___|_| |_| |_|\__, |
-                                                 |___/
+                                                 |___/ 
 
+Executing block 9...
+Graded OPR block 9 (winners: ['', '', '', '', '', '', '', '', '', ''])
+Parsed factoid block 9 (burns found: 0)
 
-Current Factom block height: 145
-Dispatched tasks. Sleeping for 1 minute...
+Executing block 10...
+Graded OPR block 10 (winners: ['b7471632b9da1511', '599fd1bc18ef8f63', '22d9b7b300350687', '4d5004c4a137b9cb', '839e3452846b1553', '6a22e1e9af2d2cb6', '9781259b254ed211', '8a95fa701573c39b', '619e990b6d6f3aee', '74b40c53231a9c6f'])
+Parsed factoid block 10 (burns found: 0)
 
-
-Highest OPR Entry Block previously parsed: 142
-Graded OPR block 143 (winners: ['c48d70ccdbc9121a', '1b2b21b3d49894f7', '6d1abd9da09957ec', '10ef6812a03c56b9', 'cb0928ad73503bed', '124d5e51cd6d91d0', '27cb90f0d1650e4b', 'fb90b47f8f16ec0c', 'f0112da0392382fb', '3d494c4d09664c87'])
-Graded OPR block 144 (winners: ['10a7585cdd6659ba', 'b4bcabd1eaf69de7', '47a7616fd2ca5626', '545282d63903cd25', '0eb46244b22bc153', 'b398ddeb36071c16', 'dcf1636ede1341d7', 'facccd20bf5cb633', '9f314e621a306595', '5c7609b303734f85'])
-Graded OPR block 145 (winners: ['b1e805e484c6280b', '2179a18295d0dca6', '776170efe152cd76', '152b25b16ba178be', '3483dd3c63ba6b9a', 'f1100f6eb334c547', '69f55d349d7f0696', '75e8bbc3466f1680', '09a2a99677c014f5', '3acf9f917284774c'])
-Finished grading all unseen blocks
-Updating OPR database...
-
-Highest Factoid Block previously parsed: 142
-Parsed factoid block 143 (burns found: 0)
-Parsed factoid block 144 (burns found: 0)
-Parsed factoid block 145 (burns found: 0)
-Updating FCT burn database...
+Executing block 11...
+Graded OPR block 11 (winners: ['92dfc51e9e19d804', '3d6b43d1df3e584b', '8cc2818037a89684', 'c0d79d71f3589e78', '737115e100fd29e4', '24ec17cf8d4fcd82', 'c999e5ceffa7def3', '09427764568bf2a7', 'f71390e14f2ec4da', '4fe4ceaaad6b8d4a'])
+Parsed factoid block 11 (burns found: 0)
 ```
 
 ### Burning FCT for pFCT
@@ -96,7 +93,6 @@ The above transaction was not sent.
 
 
 ### Checking current balances
-Currently only FCT, pFCT, and PNT are supported:
 ```
 $ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q | jq
 
@@ -107,6 +103,94 @@ $ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q
 }
 ```
 
+### Sending a like-kind transaction
+
+To try out sending a transaction, the `--dry-run` flag will ensure you can view the transaction that will be created, but just don't send it.
+
+```
+$ ./alchemy.py send 5000 pFCT FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q --to 5000 FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC --ec-address EC3TsJHUs8bzbbVnratBafub6toRYdgzgbR7kWwCW4tqbmyySRmg --dry-run
+
+External-IDs: ['313536353938323536362e313530323834', '01718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28', '410994cba2844a5b441142612836f0172e7a2fe9d7dc315af03ad6b24f84b8df733e4e6fe572d8447732bbe8a52f9ec67bab4bccfb287d1100ff2d72b5c29d07']
+Content: {"transactions":[{"input":{"address":"FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q","type":"FCT","amount":5000},"outputs":[{"address":"FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC","amount":5000}]}]}
+The above transaction was not sent.
+
+```
+
+Then re-execute the command without the --dry-run flag in order to actually send it:
+```
+./alchemy.py send 5000 pFCT FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q --to 5000 FA1zT4aFpEvcnPqPCigB3fvGu4Q4mTXY22iiuV69DqE1pNhdF2MC --ec-address EC3TsJHUs8bzbbVnratBafub6toRYdgzgbR7kWwCW4tqbmyySRmg
+
+Tx Sent: {'message': 'Entry Reveal Success', 'entryhash': '8bbb628e7318c6a5d07f8cc135ab4d002e1d7965df759b6a4922e5d6a3905a60', 'chainid': '77d4651d899bdff0a8e15515ea49552a530b4657bc198414f555aabcde87e5b0'}
+
+```
+
+### Convert between assets
+```
+$ ./alchemy.py convert 50000 pFCT FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q --to 2500 pUSD --to 177 pETH --ec-address EC3TsJHUs8bzbbVnratBafub6toRYdgzgbR7kWwCW4tqbmyySRmg --dry-run
+
+External-IDs: ['313536353938323931382e303637343533', '01718b5edd2914acc2e4677f336c1a32736e5e9bde13663e6413894f57ec272e28', '761288cb01b3238f681f0b665081fb1c1b7bec484a036e3498f0a08d6d64ac2168ff261b46a8d3ee7acb31f7a9c822a98cf29a30a8b5eaa24a4a4a1616f8e800']
+Content: {"transactions":[{"input":{"address":"FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q","type":"FCT","amount":50000},"outputs":[{"address":"FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q","type":"USD","amount":2500},{"address":"FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q","type":"ETH","amount":177}]}]}
+The above transaction was not sent.
+```
+
+```
+$ ./alchemy.py convert 50000 pFCT FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q --to 2500 pUSD --to 177 pETH --ec-address EC3TsJHUs8bzbbVnratBafub6toRYdgzgbR7kWwCW4tqbmyySRmg
+
+Tx Sent: {'message': 'Entry Reveal Success', 'entryhash': '1e419455abd9daa45522ee35a4927a8b729ce20a6d18d744daafa8e0009de306', 'chainid': '77d4651d899bdff0a8e15515ea49552a530b4657bc198414f555aabcde87e5b0'}
+```
+
+Now after executing the above conversion, we can check the balances again:
+$ ./alchemy.py get-balances FA2jK2HcLnRdS94dEcU27rF3meoJfpUcZPSinpb7AwQvPRY6RL1Q | jq{
+  "balances": {
+    "PNT": 188500000000000,
+    "pFCT": 53499983917,
+    "pUSD": 2500,
+    "pETH": 177,
+    "FCT": 1936499988000
+  }
+}
+
+
+### Get conversion rates
+```
+$ ./alchemy.py get-rates 392 | jq
+{
+  "rates": {
+    "PNT": 0,
+    "USD": 1,
+    "EUR": 1.1107,
+    "JPY": 0.0094,
+    "GBP": 1.2086,
+    "CAD": 0.751,
+    "CHF": 1.0241,
+    "INR": 0.014,
+    "SGD": 0.7199,
+    "CNY": 0.1421,
+    "HKD": 0.1275,
+    "KRW": 0.0008,
+    "BRL": 0.2505,
+    "PHP": 0.019,
+    "MXN": 0.0509,
+    "XAU": 1522.07,
+    "XAG": 17.2568,
+    "XPD": 1428,
+    "XPT": 837,
+    "XBT": 10392.3863,
+    "ETH": 187.3305,
+    "LTC": 76.4788,
+    "RVN": 0.0345,
+    "XBC": 319.4148,
+    "FCT": 3.2186,
+    "BNB": 28.1535,
+    "XLM": 0.0701,
+    "ADA": 0.0476,
+    "XMR": 82.0497,
+    "DASH": 95.5745,
+    "ZEC": 50.5974,
+    "DCR": 25.5179
+  }
+}
+```
 
 ### Get winning records of a block
 Returns a list of entry hashes for the winners of the given block height

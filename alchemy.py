@@ -96,7 +96,7 @@ def burn(amount, fct_address, testnet, dry_run):
 def convert(amount, from_ticker, address, to, ec_address, dry_run):
     """Perform a conversion between assets"""
     # Input validation
-    if from_ticker not in consts.ALL_ASSETS:
+    if from_ticker[0] != "p" or from_ticker[1:] not in consts.ALL_ASSETS:
         print(f"Error: invalid ticker symbol ({from_ticker})\n")
         print(f"Possible values: {consts.ALL_ASSETS}")
         return
@@ -106,6 +106,7 @@ def convert(amount, from_ticker, address, to, ec_address, dry_run):
     if not ECAddress.is_valid(ec_address):
         print(f"Error: invalid EC address ({ec_address})")
         return
+    from_ticker = from_ticker[1:]
 
     # Get the singer private key from walletd
     factomd = Factomd()
@@ -122,11 +123,12 @@ def convert(amount, from_ticker, address, to, ec_address, dry_run):
 
     output_address = input_signer.get_factoid_address()
     for amount, ticker in to:
-        if ticker not in consts.ALL_ASSETS:
+        if ticker[0] != "p" or ticker[1:] not in consts.ALL_ASSETS:
             print(f"Error: invalid ticker symbol ({ticker})\n")
             print(f"Possible values: {consts.ALL_ASSETS}")
             return
-        tx.add_output(address=output_address, asset_type=ticker, amount=amount)
+        t = ticker[1:]
+        tx.add_output(address=output_address, asset_type=t, amount=amount)
 
     tx_entry = alchemy.transactions.models.TransactionEntry()
     tx_entry.add_transaction(tx)
@@ -159,7 +161,7 @@ def convert(amount, from_ticker, address, to, ec_address, dry_run):
 def send(amount, from_ticker, address, to, ec_address, dry_run):
     """Send a like-kind transaction"""
     # Input validation
-    if from_ticker not in consts.ALL_ASSETS:
+    if from_ticker[0] != "p" or from_ticker[1:] not in consts.ALL_ASSETS:
         print(f"Error: invalid ticker symbol ({from_ticker})\n")
         print(f"Possible values: {consts.ALL_ASSETS}")
         return
@@ -169,6 +171,7 @@ def send(amount, from_ticker, address, to, ec_address, dry_run):
     if not ECAddress.is_valid(ec_address):
         print(f"Error: invalid EC address ({ec_address})")
         return
+    from_ticker = from_ticker[1:]
 
     # Get the singer private key from walletd
     factomd = Factomd()
@@ -261,7 +264,7 @@ def get_balances(address, testnet, human):
 @main.command()
 @click.argument("height", type=int)
 def get_rates(height,):
-    """Get a list of all conversion rates for the given block height"""
+    """Get a list of conversion rates for the given block"""
     result = alchemy.rpc.get_rates(height)
     print(json.dumps(result))
 
@@ -270,7 +273,7 @@ def get_rates(height,):
 @click.option("--ticker", "-t", type=str, multiple=True)
 @click.option("--by-height", is_flag=True)
 def graph_prices(ticker, by_height):
-    """Show a graph for the prices of given tickers"""
+    """Graph the prices of given tickers"""
     for t in ticker:
         if t not in consts.ALL_ASSETS:
             print(f"Invalid ticker symbol: {t}\n")
@@ -286,7 +289,7 @@ def graph_prices(ticker, by_height):
 @main.command()
 @click.option("--by-height", is_flag=True)
 def graph_difficulties(by_height):
-    """Show a graph for the range of winning miner difficulties"""
+    """Graph the range of winning miner difficulties"""
     alchemy.rpc.graph_difficulties(by_height)
     print("Done. A browser window should open shortly.")
 
