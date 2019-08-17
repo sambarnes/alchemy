@@ -70,7 +70,7 @@ def get_rates(height: int):
     return {"rates": _make_call(f)}
 
 
-def graph_prices(tickers: List[str], is_by_height: bool = False):
+def graph_prices(tickers: List[str], is_by_height: bool = False, show: bool = False):
     df = pd.read_csv(alchemy.csv_exporting.prices_filename)
     fig = plotly.subplots.make_subplots(rows=len(tickers), cols=1, subplot_titles=tickers)
     for i, ticker in enumerate(tickers):
@@ -82,10 +82,12 @@ def graph_prices(tickers: List[str], is_by_height: bool = False):
     fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
     fig.update_yaxes(title_text="USD")
     fig.update_layout(title_text=f"Time Series Prices for All Assets", height=600 * len(tickers))
-    fig.show()
+    if show:
+        fig.show()
+    return fig.to_html()
 
 
-def graph_difficulties(is_by_height: bool = False):
+def graph_difficulties(is_by_height: bool = False, show: bool = False):
     df = pd.read_csv(alchemy.csv_exporting.difficulties_filename)
     fig = go.Figure()
     fig.add_trace(
@@ -110,4 +112,6 @@ def graph_difficulties(is_by_height: bool = False):
     fig.update_xaxes(title_text="Block Height" if is_by_height else "Time")
     fig.update_yaxes(title_text="Difficulty")
     fig.update_layout(title_text=f"Time Series Miner Difficulties", height=750, xaxis_rangeslider_visible=True)
-    fig.show()
+    if show:
+        fig.show()
+    return fig.to_html()

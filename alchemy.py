@@ -282,7 +282,7 @@ def graph_prices(ticker, by_height):
     if len(ticker) == 0:
         ticker = sorted(consts.ALL_ASSETS)
 
-    alchemy.rpc.graph_prices(ticker, by_height)
+    alchemy.rpc.graph_prices(ticker, by_height, show=True)
     print("Done. A browser window should open shortly.")
 
 
@@ -290,7 +290,7 @@ def graph_prices(ticker, by_height):
 @click.option("--by-height", is_flag=True)
 def graph_difficulties(by_height):
     """Graph the range of winning miner difficulties"""
-    alchemy.rpc.graph_difficulties(by_height)
+    alchemy.rpc.graph_difficulties(by_height, show=True)
     print("Done. A browser window should open shortly.")
 
 
