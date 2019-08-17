@@ -250,7 +250,7 @@ def parse_request(request_json: Dict[str, Any]) -> (Union[str, int, None], str, 
         raise MethodNotFoundError()
 
     request_id = request_json.get("id")
-    if "id" not in request_json or type(request_id) not in {int, str, None}:
+    if "id" in request_json and type(request_id) not in {int, str, None}:
         raise InvalidRequestError()
 
     params = request_json.get("params", {})
