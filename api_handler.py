@@ -171,9 +171,9 @@ def send_transactions(params: Dict[str, Any]):
     transactions = params.get("transactions")
     ec_address = params.get("ec_address")
     if type(transactions) != list or len(transactions) == 0:
-        bottle.abort(400)
+        raise InvalidParamsError()
     if type(ec_address) != str or not ECAddress.is_valid():
-        bottle.abort(400)
+        raise InvalidParamsError()
 
     import factom.exceptions
     from factom import Factomd, FactomWalletd
@@ -186,15 +186,14 @@ def send_transactions(params: Dict[str, Any]):
         # Make sure it's a valid transaction
         tx = tx_models.Transaction.from_dict(tx_dict)
         if not tx.is_valid():
-            bottle.abort(400)
+            raise InvalidParamsError()
 
         # Make sure the input addresses is valid and in the wallet
         input_address = tx.input["address"]
         try:
             input_secret = walletd.address(input_address)["secret"]
         except factom.exceptions.InternalError:
-            bottle.abort(400)
-            return
+            raise InvalidParamsError()
         signer = FactoidPrivateKey(key_string=input_secret)
 
         # All good
