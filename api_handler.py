@@ -1,9 +1,11 @@
 import bottle
 import json
-from factom_keys.fct import FactoidAddress
+from factom_keys.ec import ECAddress
+from factom_keys.fct import FactoidAddress, FactoidPrivateKey
 
 import alchemy.consts as consts
 import alchemy.rpc as rpc
+import alchemy.transactions.models as tx_models
 
 
 # -------------------------------------
@@ -55,6 +57,53 @@ def get_winners(height: int):
     if height < 0:
         bottle.abort(404)
     return rpc.get_winners(height)
+
+
+@bottle.post("/v1/transactions")
+def post_transaction():
+    request_json = bottle.request.json
+    transactions = request_json.get("transactions")
+    ec_address = request_json.get("ec_address")
+    if type(transactions) != list or len(transactions) == 0:
+        bottle.abort(400)
+    if type(ec_address) != str or not ECAddress.is_valid():
+        bottle.abort(400)
+
+    import factom.exceptions
+    from factom import Factomd, FactomWalletd
+
+    factomd = Factomd()
+    walletd = FactomWalletd()
+
+    tx_entry = tx_models.TransactionEntry()
+    for tx_dict in transactions:
+        # Make sure it's a valid transaction
+        tx = tx_models.Transaction.from_dict(tx_dict)
+        if not tx.is_valid():
+            bottle.abort(400)
+
+        # Make sure the input addresses is valid and in the wallet
+        input_address = tx.input["address"]
+        try:
+            input_secret = walletd.address(input_address)["secret"]
+        except factom.exceptions.InternalError:
+            bottle.abort(400)
+            return
+        signer = FactoidPrivateKey(key_string=input_secret)
+
+        # All good
+        tx_entry.add_transaction(tx)
+        tx_entry.add_signer(signer)
+
+    external_ids, content = tx_entry.sign()
+    entry_reveal_response = walletd.new_entry(
+        factomd=factomd,
+        chain_id=consts.TRANSACTIONS_CHAIN_ID,
+        ext_ids=external_ids,
+        content=content,
+        ec_address=ec_address,
+    )
+    return entry_reveal_response
 
 
 # -------------------------------------
