@@ -52,15 +52,20 @@ def get_sync_head():
     return rpc.get_sync_head()
 
 
-@bottle.get("/v1/balances/<height:int>")
+@bottle.get("/v1/winners/<height:int>")
 def get_winners(height: int):
     if height < 0:
         bottle.abort(404)
     return rpc.get_winners(height)
 
 
+@bottle.get("/v1/winners/latest")
+def get_latest_winners():
+    return rpc.get_winners()
+
+
 @bottle.post("/v1/transactions")
-def post_transaction():
+def send_transaction():
     request_json = bottle.request.json
     transactions = request_json.get("transactions")
     ec_address = request_json.get("ec_address")

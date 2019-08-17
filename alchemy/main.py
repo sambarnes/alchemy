@@ -64,7 +64,8 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
             database.update_balances(address_bytes, {consts.PNT: delta})
 
         rates = winners[0].asset_estimates
-        print(f"{color.GREEN}Graded OPR block {height} (winners: {previous_winners}){color.RESET}")
+        short_winners = [x[:8].hex() for x in winning_entry_hashes]
+        print(f"{color.GREEN}Graded OPR block {height} (winners: {short_winners}){color.RESET}")
     else:
         winners_head = database.get_winners_head()
         rates = database.get_rates(winners_head) if winners_head != -1 else {}

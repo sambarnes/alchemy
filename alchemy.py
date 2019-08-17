@@ -237,15 +237,23 @@ def reset():
 @main.command()
 def get_sync_head():
     """Get the highest block parsed"""
-    result = alchemy.rpc.get_sync_head()
+    try:
+        result = alchemy.rpc.get_sync_head()
+    except ConnectionRefusedError:
+        print("Error: failed to make request, ensure alchemy is running")
+        return
     print(json.dumps(result))
 
 
 @main.command()
-@click.argument("height", type=int)
+@click.argument("height", required=False, type=int)
 def get_winners(height):
     """Get winning records at the given block height"""
-    result = alchemy.rpc.get_winners(height)
+    try:
+        result = alchemy.rpc.get_winners(height)
+    except ConnectionRefusedError:
+        print("Error: failed to make request, ensure alchemy is running")
+        return
     print(json.dumps(result))
 
 
@@ -255,7 +263,11 @@ def get_winners(height):
 @click.option("--human", is_flag=True)
 def get_balances(address, testnet, human):
     """Get a list of all balances for the given address"""
-    result = alchemy.rpc.get_balances(address)
+    try:
+        result = alchemy.rpc.get_balances(address)
+    except ConnectionRefusedError:
+        print("Error: failed to make request, ensure alchemy is running")
+        return
     if human:
         result["balances"] = {ticker: value / 1e8 for ticker, value in result["balances"].items()}
     print(json.dumps(result))
@@ -265,7 +277,11 @@ def get_balances(address, testnet, human):
 @click.argument("height", type=int)
 def get_rates(height,):
     """Get a list of conversion rates for the given block"""
-    result = alchemy.rpc.get_rates(height)
+    try:
+        result = alchemy.rpc.get_rates(height)
+    except ConnectionRefusedError:
+        print("Error: failed to make request, ensure alchemy is running")
+        return
     print(json.dumps(result))
 
 

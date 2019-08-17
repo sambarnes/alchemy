@@ -14,6 +14,7 @@ from alchemy.db import AlchemyDB
 def register_database_functions(database: AlchemyDB):
     aiorpc.register("sync_head", database.get_sync_head)
     aiorpc.register("winners", database.get_winners)
+    aiorpc.register("latest-winners", database.get_highest_winners)
     aiorpc.register("balances", database.get_balances)
     aiorpc.register("rates", database.get_rates)
 
@@ -33,9 +34,11 @@ def get_sync_head():
     return {"sync_head": head}
 
 
-def get_winners(height: int):
+def get_winners(height: int = None):
     async def f(client):
-        return await client.call_once("winners", height, True)
+        if height is not None:
+            return await client.call_once("winners", height, True)
+        return await client.call_once("latest-winners", True)
 
     winning_entry_hashes = _make_call(f)
     winners = (
