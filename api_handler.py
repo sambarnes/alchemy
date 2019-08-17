@@ -37,31 +37,46 @@ def graph_difficulties():
 def get_balances(address):
     if not FactoidAddress.is_valid(address):
         bottle.abort(404)
-    return rpc.get_balances(address)
+    try:
+        return {"data": rpc.get_balances(address)}
+    except ConnectionRefusedError:
+        bottle.abort(500)
 
 
 @bottle.get("/v1/rates/<height:int>")
 def get_rates(height: int):
     if height < 0:
         bottle.abort(404)
-    return rpc.get_rates(height)
+    try:
+        return {"data": rpc.get_rates(height)}
+    except ConnectionRefusedError:
+        bottle.abort(500)
 
 
 @bottle.get("/v1/sync_head/")
 def get_sync_head():
-    return rpc.get_sync_head()
+    try:
+        return {"data": rpc.get_sync_head()}
+    except ConnectionRefusedError:
+        bottle.abort(500)
 
 
 @bottle.get("/v1/winners/<height:int>")
 def get_winners(height: int):
     if height < 0:
         bottle.abort(404)
-    return rpc.get_winners(height)
+    try:
+        return {"data": rpc.get_winners(height)}
+    except ConnectionRefusedError:
+        bottle.abort(500)
 
 
 @bottle.get("/v1/winners/latest")
 def get_latest_winners():
-    return rpc.get_winners()
+    try:
+        return {"data": rpc.get_winners()}
+    except ConnectionRefusedError:
+        bottle.abort(500)
 
 
 @bottle.post("/v1/transactions")

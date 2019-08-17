@@ -275,7 +275,7 @@ def get_balances(address, testnet, human):
 
 @main.command()
 @click.argument("height", type=int)
-def get_rates(height,):
+def get_rates(height):
     """Get a list of conversion rates for the given block"""
     try:
         result = alchemy.rpc.get_rates(height)
