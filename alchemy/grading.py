@@ -33,7 +33,7 @@ def process_block(height: int, previous_winners: List[str], factomd: Factomd, lx
 def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR]):
     """
     Given a list of previous winners (first 8 bytes of entry hashes in hex), grade all records
-    and return a list of winning 10 (sorted by grade) and a list of the top 50 (sorted by difficulty)
+    and return a list of top 50 sorted by grade and a list of the top 50 sorted by difficulty
     """
     # First take top 50 by difficulty
     valid_records: List[OPR] = []
@@ -58,7 +58,7 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
 
     # Then calculate grade for each record in the top 50 and sort
     graded_records = valid_records
-    for i in range(len(graded_records) - 1, -1, -1):
+    for i in range(len(graded_records), -1, -1):
         if i < 10:
             break
         averages = average_estimates(graded_records[:i])
@@ -67,7 +67,7 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
         graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.self_reported_difficulty, reverse=True)
         graded_records[:i] = sorted(graded_records[:i], key=lambda x: x.grade)
 
-    return graded_records[:10], valid_records  # Return winners by grade, top 50 by difficulty
+    return graded_records, valid_records  # Return top 50 by grade, top 50 by difficulty
 
 
 def average_estimates(records: List[OPR]) -> AssetEstimates:

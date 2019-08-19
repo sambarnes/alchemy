@@ -51,7 +51,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         database.put_rates(height, winners[0].asset_estimates)
 
         pnt_deltas = defaultdict(float)
-        for i, record in enumerate(winners):
+        for i, record in enumerate(winners[:10]):
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
 
         # Graphing: write winning prices and the winning difficulty range to csv
@@ -64,8 +64,8 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
             database.update_balances(address_bytes, {consts.PNT: delta})
 
         rates = winners[0].asset_estimates
-        short_winners = [x[:8].hex() for x in winning_entry_hashes]
-        print(f"{color.GREEN}Graded OPR block {height} (winners: {short_winners}){color.RESET}")
+        winners_description = [x[:8].hex() for x in winning_entry_hashes]
+        print(f"{color.GREEN}Graded OPR block {height} (winners: {winners_description}){color.RESET}")
     else:
         winners_head = database.get_winners_head()
         rates = database.get_rates(winners_head) if winners_head != -1 else {}
