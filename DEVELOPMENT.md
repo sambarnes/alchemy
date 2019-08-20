@@ -16,3 +16,7 @@ The only requirement for custom grading implementations is that they extend [`Ba
     - `List[OPR]` - the top 50 records sorted by difficulty
 
 For an example, see the `StockGrader` implementation [here](https://github.com/sambarnes/alchemy/blob/master/alchemy/grading/graders/stock.py).
+
+### Comparing Graders
+
+To compare a new grader against the stock implementation, the [`experimentation/compare_graders.py`](https://github.com/sambarnes/alchemy/blob/master/experimentation/compare_graders.py) script will run both against the local factomd network and output statistics for comparison. Still need more recommendations about what data-points would be useful to compare against.

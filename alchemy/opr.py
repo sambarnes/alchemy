@@ -87,3 +87,6 @@ class OPR:
             miner_id=miner_id,
             timestamp=timestamp,
         )
+
+    def __str__(self):
+        return f"OPR(entry={self.entry_hash[:8].hex()}, difficulty={self.self_reported_difficulty.hex()}, grade={self.grade}, coinbase={self.coinbase_address}, id={self.miner_id})"
