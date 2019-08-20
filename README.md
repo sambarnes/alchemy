@@ -7,7 +7,12 @@ An alternative utility for interacting with the PegNet.
 ## Features
 - Grades all OPR records and validates factoid burns
 - Create burn transactions (FCT --> pFCT)
-- Get FCT, pFCT, and PNT balances
+- Get balances of all assets
+- Convert from one asset to another
+- Transact assets between addresses
+- Graph asset prices per block
+- Graph top 50 mining difficulties per block
+- Pluggable grading algorithms (and tools to compare across implementations)
 
 ## Prerequisites
 - Make sure to have a LXR map generated already, it'll take far far too long for the naive python implementation to generate it
