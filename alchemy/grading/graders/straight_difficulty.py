@@ -6,12 +6,7 @@ from alchemy.opr import OPR
 
 class StraightDifficultyGrader(graders.BaseGrader):
     """
-    The current reference implementation for PegNet grading.
-
-    Known issues:
-    - encourages pricing centralization: miners have the incentive to be precise relative to other miners, rather than
-      an incentive to provide accurate prices
-    - TODO: write more...
+    Grades each block based on difficulty only. Winning asset prices are the average of the top 50 by difficulty.
     """
 
     def grade_records(self, previous_winners: List[str], records: List[OPR]):
