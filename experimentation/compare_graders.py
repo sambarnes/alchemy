@@ -1,5 +1,6 @@
 import hashlib
 import pylxr
+import sys
 from factom import Factomd
 
 import alchemy.consts as consts
@@ -7,14 +8,15 @@ import alchemy.grading.graders as graders
 from alchemy.opr import OPR
 
 
-def run():
+def run(n_blocks: int = None):
     factomd = Factomd()
     lxr = pylxr.LXR()
     stock_grader = graders.StockGrader(lxr)
     custom_grader = graders.StraightDifficultyGrader(lxr)
 
+    start_height = consts.START_HEIGHT
     prev_winners = ["" for _ in range(10)]
-    height = consts.START_HEIGHT
+    height = start_height
     while True:
         # First pass, collect all sane OPRs in block
         current_block_records = []
@@ -34,6 +36,8 @@ def run():
         custom_prices, custom_winners, custom_top50 = custom_grader.grade_records(prev_winners, current_block_records)
 
         if stock_winners is not None:
+            print(f"\nBlock {height}")
+
             # Aggregate stats
             stock_rewards = {}
             custom_rewards = {}
@@ -47,8 +51,6 @@ def run():
                 custom_rewards[custom_coinbase] = custom_rewards.get(custom_coinbase, 0) + reward
 
             # Output results
-            print(f"\nBlock {height}")
-
             print("Stock:")
             print(f"\tRates: {stock_prices}")
             print(f"\tRewards: {stock_rewards}")
@@ -65,7 +67,12 @@ def run():
             print(f"\nSkipped block {height}")
 
         height += 1
+        if n_blocks is not None and n_blocks < height - start_height:
+            return
 
 
 if __name__ == "__main__":
-    run()
+    if len(sys.argv) == 2:
+        run(int(sys.argv[1]))
+    else:
+        run()
