@@ -12,13 +12,13 @@ difficulties_path = f"{home}/.pegnet/alchemy/difficulties/"
 difficulties_filename = f"{difficulties_path}/data.csv"
 
 
-def write_prices(record):
+def write_prices(prices, height, timestamp):
     if not os.path.exists(prices_path):
         os.makedirs(prices_path)
     headers = ["Date", "Height"] + sorted(list(consts.ALL_ASSETS))
-    row = record.asset_estimates
-    row["Date"] = np.datetime64(datetime.datetime.utcfromtimestamp(record.timestamp))
-    row["Height"] = record.height
+    row = prices
+    row["Date"] = np.datetime64(datetime.datetime.utcfromtimestamp(timestamp))
+    row["Height"] = height
     if os.path.exists(prices_filename):
         with open(prices_filename, "a") as f:
             writer = csv.DictWriter(f, fieldnames=headers)

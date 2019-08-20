@@ -42,7 +42,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         if len(previous_winners_full) != 0
         else ["" for _ in range(10)]
     )
-    winners, top50 = alchemy.grading.process_block(height, previous_winners, factomd, lxr, is_testnet)
+    prices, winners, top50 = alchemy.grading.process_block(height, previous_winners, factomd, lxr, is_testnet)
     if winners is not None:
         # Update winners in database. Calculate PNT reward deltas. Export winning prices to csv
         winning_entry_hashes = [record.entry_hash for record in winners[:10]]
@@ -55,7 +55,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
             pnt_deltas[record.coinbase_address] += consts.BLOCK_REWARDS.get(i, 0)
 
         # Graphing: write winning prices and the winning difficulty range to csv
-        alchemy.csv_exporting.write_prices(winners[0])
+        alchemy.csv_exporting.write_prices(prices, height, winners[0].timestamp)
         alchemy.csv_exporting.write_difficulty(top50[0], top50[-1])
 
         # Update PNT balances in database
