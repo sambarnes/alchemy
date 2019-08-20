@@ -27,6 +27,42 @@ CRYPTO_ASSETS = {"XBT", "ETH", "LTC", "RVN", "XBC", "FCT", "BNB", "XLM", "ADA", 
 ALL_PEGGED_ASSETS = CURRENCY_ASSETS.union(COMMODITY_ASSETS).union(CRYPTO_ASSETS)
 ALL_ASSETS = ALL_PEGGED_ASSETS.union({PNT})
 
+# Due to the nature of float arithmetic, we must grade OPRs with the exact order of tokens listed here
+ASSET_GRADING_ORDER = [
+    "PNT",
+    "USD",
+    "EUR",
+    "JPY",
+    "GBP",
+    "CAD",
+    "CHF",
+    "INR",
+    "SGD",
+    "CNY",
+    "HKD",
+    "KRW",
+    "BRL",
+    "PHP",
+    "MXN",
+    "XAU",
+    "XAG",
+    "XPD",
+    "XPT",
+    "XBT",
+    "ETH",
+    "LTC",
+    "RVN",
+    "XBC",
+    "FCT",
+    "BNB",
+    "XLM",
+    "ADA",
+    "XMR",
+    "DASH",
+    "ZEC",
+    "DCR",
+]
+
 
 class BurnAddresses(Enum):
     MAINNET = "EC2BURNFCT2PEGNETooo1oooo1oooo1oooo1oooo1oooo19wthin"

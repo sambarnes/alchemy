@@ -72,7 +72,7 @@ def grade_records(lxr: pylxr.LXR, previous_winners: List[str], records: List[OPR
 
 def average_estimates(records: List[OPR]) -> AssetEstimates:
     """Computes the average answer for the price of each token reported"""
-    averages: AssetEstimates = {k: np.float64(0) for k in consts.ALL_ASSETS}
+    averages: AssetEstimates = {k: np.float64(0) for k in consts.ASSET_GRADING_ORDER}
     # Sum up all the prices
     for record in records:
         for k, v in record.asset_estimates.items():
@@ -93,7 +93,8 @@ def calculate_grade(record_estimates: AssetEstimates, averages: AssetEstimates) 
     where `grade = Σ(asset_difference^4)` over all assets in the set
     """
     grade = np.float64(0)
-    for k, v in record_estimates.items():
+    for k in consts.ASSET_GRADING_ORDER:
+        v = record_estimates.get(k)
         if averages[k] > 0:
             d = (v - averages[k]) / averages[k]
             grade += np.float64(d * d * d * d)
