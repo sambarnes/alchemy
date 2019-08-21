@@ -16,6 +16,7 @@ An alternative utility for interacting with the PegNet.
 
 ## Prerequisites
 - Make sure to have a LXR map generated already, it'll take far far too long for the naive python implementation to generate it
+- Install pylxr from source `$ pip install git+https://github.com/pegnet/pylxr.git`
 - A running factomd node locally with a running PegNet chain
 - A running factom-walletd locally (optional: only required if burning factoids)
 
