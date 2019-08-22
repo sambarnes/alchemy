@@ -51,23 +51,18 @@ class AlchemyCloudDB:
         })
         self._db.put(entity)
 
-    def get_winners_head(self) -> int:
-        raise NotImplementedError()
-
-    def put_winners_head(self, height: int):
-        raise NotImplementedError()
-
     def get_winners(self, height: int, encode_to_hex: bool = False) -> Union[List[bytes], List[str]]:
-        raise NotImplementedError()
-
-    def put_winners(self, height: int, winners: List[bytes]):
-        raise NotImplementedError()
+        block = self.get_block(height)
+        if block is None:
+            return None
+        winners = block.get("winners")
+        return winners if encode_to_hex else [bytes.fromhex(x) for x in winners]
 
     def get_highest_winners(self, encode_to_hex: bool = False) -> Union[List[bytes], List[str]]:
         raise NotImplementedError()
 
     def get_rates(self, height: int) -> Dict[str, float]:
-        raise NotImplementedError()
-
-    def put_rates(self, height: int, rates: Dict[str, float]) -> None:
-        raise NotImplementedError()
+        block = self.get_block(height)
+        if block is None:
+            return None
+        return block.get("rates")
