@@ -3,7 +3,7 @@ from factom import Factomd
 from typing import Dict
 
 import alchemy.consts as consts
-from alchemy.db import AlchemyDB
+from alchemy.database import AlchemyDB
 from alchemy.transactions.models import TransactionEntry
 
 

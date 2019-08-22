@@ -2,6 +2,7 @@ click
 colorama
 factom-api
 factom-keys
+google-cloud-datastore
 numpy
 pandas
 plotly

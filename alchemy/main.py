@@ -14,7 +14,7 @@ import alchemy.csv_exporting
 import alchemy.grading
 import alchemy.transactions
 import alchemy.rpc
-from alchemy.db import AlchemyDB
+from alchemy.database import AlchemyDB, AlchemyCloudDB, AlchemyLevelDB
 
 
 async def run_protocol(database: AlchemyDB, is_testnet: bool = False):
@@ -86,18 +86,24 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
     database.put_sync_head(height)
 
 
-def run(is_testnet: bool):
+def run(is_testnet: bool, is_cloud: bool):
     """Main entry point for an alchemy node"""
     loop = uvloop.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    database = AlchemyDB(is_testnet, create_if_missing=True)
-    alchemy.rpc.register_database_functions(database)
+    if is_cloud:
+        # Cloud node, use GCloud Datastore
+        database = AlchemyCloudDB()
+    else:
+        # Local node, use LevelDB and serve the RPC endpoints to access them
+        database = AlchemyLevelDB(is_testnet, create_if_missing=True)
+        alchemy.rpc.register_database_functions(database)
+        server_coro = asyncio.start_server(aiorpc.serve, "127.0.0.1", 6000, loop=loop)
+        server = loop.run_until_complete(server_coro)
 
-    server_coro = asyncio.start_server(aiorpc.serve, "127.0.0.1", 6000, loop=loop)
-    server = loop.run_until_complete(server_coro)
     try:
         loop.run_until_complete(run_protocol(database, is_testnet))
     except (KeyboardInterrupt, SystemExit):
-        server.close()
+        if not is_cloud:
+            server.close()
         loop.run_until_complete(server.wait_closed())

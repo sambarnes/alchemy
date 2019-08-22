@@ -8,7 +8,7 @@ import pandas as pd
 from typing import List
 
 import alchemy.csv_exporting
-from alchemy.db import AlchemyDB
+from alchemy.database import AlchemyDB
 
 
 def register_database_functions(database: AlchemyDB):

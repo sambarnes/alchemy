@@ -5,6 +5,8 @@ import struct
 from factom_keys.fct import FactoidAddress
 from typing import Dict, List, Union
 
+from alchemy.database import AlchemyDB
+
 
 SYNC_HEAD = b"SyncHead"
 WINNERS_HEAD = b"WinnersHead"
@@ -12,10 +14,8 @@ BALANCES = b"Balances"
 WINNERS = b"Winners"
 RATES = b"Rates"
 
-BalanceMap = Dict[str, int]
 
-
-class AlchemyDB:
+class AlchemyLevelDB(AlchemyDB):
     def __init__(self, is_testnet: bool = False, **kwargs):
         """An alchemy specific wrapper around level-db"""
         home = os.getenv("HOME")
@@ -37,21 +37,18 @@ class AlchemyDB:
         self._db.put(SYNC_HEAD, height_bytes)
 
     def get_balances(self, address: Union[bytes, str]) -> Union[None, Dict[str, int]]:
-        """Gets a map of balances for the given address.
-        :param address: A bytes object of the address RCD hash, or a string of the address in human readable notation
-        """
         sub_db = self._db.prefixed_db(BALANCES)
         if type(address) == str:
             address = FactoidAddress(address_string=address).rcd_hash
         balances_bytes = sub_db.get(address)
         return {} if balances_bytes is None else json.loads(balances_bytes.decode())
 
-    def put_balances(self, address: bytes, balances: BalanceMap):
+    def put_balances(self, address: bytes, balances: Dict[str, int]):
         sub_db = self._db.prefixed_db(BALANCES)
         balance_bytes = json.dumps(balances).encode()
         sub_db.put(address, balance_bytes)
 
-    def update_balances(self, address: bytes, deltas: BalanceMap):
+    def update_balances(self, address: bytes, deltas: Dict[str, int]):
         balances = self.get_balances(address)
         if balances is not None:
             for k, v in deltas.items():
