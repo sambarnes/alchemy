@@ -34,13 +34,11 @@ def main():
 
 
 @main.command()
-@click.argument("node-type", type=click.Choice(["local", "cloud"]))
 @click.option("--testnet", is_flag=True)
-def run(node_type, testnet):
+def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
-    is_cloud = node_type == "cloud"
-    alchemy.main.run(is_cloud, testnet)
+    alchemy.main.run(False, testnet)
 
 
 @main.command()
