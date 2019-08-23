@@ -14,9 +14,9 @@ def process_block(height: int, factomd: Factomd, is_testnet: bool = False):
     burn_count = 0
     transactions = factoid_block["transactions"]
     for tx in transactions:
-        inputs = tx.get("inputs")
-        outputs = tx.get("outputs")
-        ec_outputs = tx.get("outecs")
+        inputs = tx.get("inputs", [])
+        outputs = tx.get("outputs", [])
+        ec_outputs = tx.get("outecs", [])
         if len(inputs) != 1 or len(outputs) != 0 or len(ec_outputs) != 1:
             continue
         ec_address = ec_outputs[0].get("useraddress")
