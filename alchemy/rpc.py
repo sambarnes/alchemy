@@ -8,7 +8,7 @@ import pandas as pd
 from typing import List
 
 import alchemy.csv_exporting
-from alchemy.database import AlchemyDB
+from alchemy.database import AlchemyDB, AlchemyCloudDB
 
 
 def register_database_functions(database: AlchemyDB):
@@ -17,6 +17,7 @@ def register_database_functions(database: AlchemyDB):
     aiorpc.register("latest-winners", database.get_latest_winners)
     aiorpc.register("balances", database.get_balances)
     aiorpc.register("rates", database.get_rates)
+    aiorpc.register("latest-rates", database.get_latest_rates)
 
 
 def _make_call(coro):
@@ -26,21 +27,30 @@ def _make_call(coro):
     return loop.run_until_complete(coro(client))
 
 
-def get_sync_head():
-    async def f(client):
-        return await client.call_once("sync_head")
+def get_sync_head(is_cloud: bool = False):
+    if is_cloud:
+        db = AlchemyCloudDB()
+        head = db.get_sync_head()
+    else:
+        async def f(client):
+            return await client.call_once("sync_head")
 
-    head = _make_call(f)
+        head = _make_call(f)
     return {"sync_head": head}
 
 
-def get_winners(height: int = None):
-    async def f(client):
-        if height is not None:
-            return await client.call_once("winners", height, True)
-        return await client.call_once("latest-winners", True)
+def get_winners(height: int = None, is_cloud: bool = False):
+    if is_cloud:
+        db = AlchemyCloudDB()
+        winning_entry_hashes = db.get_latest_winners() if height is None else db.get_winners(height)
+    else:
+        async def f(client):
+            if height is not None:
+                return await client.call_once("winners", height, True)
+            return await client.call_once("latest-winners", True)
 
-    winning_entry_hashes = _make_call(f)
+        winning_entry_hashes = _make_call(f)
+
     winners = (
         [{"place": i + 1, "entry_hash": entry_hash} for i, entry_hash in enumerate(winning_entry_hashes)]
         if len(winning_entry_hashes) != 0
@@ -49,9 +59,15 @@ def get_winners(height: int = None):
     return {"winners": winners}
 
 
-def get_balances(address: str):
-    async def f(client):
-        return await client.call_once("balances", address)
+def get_balances(address: str, is_cloud: bool = False):
+    if is_cloud:
+        db = AlchemyCloudDB()
+        balances = db.get_balances(address)
+    else:
+        async def f(client):
+            return await client.call_once("balances", address)
+
+        balances = _make_call(f)
 
     factomd = factom.Factomd()
     try:
@@ -59,18 +75,24 @@ def get_balances(address: str):
     except factom.exceptions.InvalidParams:
         return {"error": "Invalid Address"}
 
-    balances = _make_call(f)
     if balances is None:
         balances = {}
     balances["FCT"] = fct_balance
     return {"balances": balances}
 
 
-def get_rates(height: int):
-    async def f(client):
-        return await client.call_once("rates", height)
+def get_rates(height: int = None, is_cloud: bool = False):
+    if is_cloud:
+        db = AlchemyCloudDB()
+        rates = db.get_latest_rates() if height is None else db.get_rates(height)
+    else:
+        async def f(client):
+            if height is not None:
+                return await client.call_once("rates", height, True)
+            return await client.call_once("latest-rates", True)
 
-    return {"rates": _make_call(f)}
+        rates = _make_call(f)
+    return {"rates": rates}
 
 
 def graph_prices(tickers: List[str], is_by_height: bool = False, show: bool = False):
