@@ -2,13 +2,14 @@ from google.cloud import datastore
 from factom_keys.fct import FactoidAddress
 from typing import Dict, List, Union
 
+from alchemy.database import AlchemyDB
 
 SYNCING = "Syncing"
 ACCOUNT = "Account"
 BLOCK = "Block"
 
 
-class AlchemyCloudDB:
+class AlchemyCloudDB(AlchemyDB):
     def __init__(self):
         self._db = datastore.Client(namespace="Alchemy")
 

@@ -38,7 +38,7 @@ def main():
 def run(testnet):
     """Main entry point for the node"""
     print(HEADER)
-    alchemy.main.run(False, testnet)
+    alchemy.main.run(testnet, is_cloud=False)
 
 
 @main.command()
