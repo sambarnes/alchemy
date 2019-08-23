@@ -57,12 +57,7 @@ class AlchemyCloudDB(AlchemyDB):
     def put_oracle_block(self, height: int, competitors: List[bytes], winners: List[bytes], rates: Dict[str, float]):
         entity_key = self._db.key(BLOCK)
         entity = datastore.Entity(key=entity_key)
-        entity.update({
-            "height": height,
-            "competitors": competitors,
-            "winners": winners,
-            "rates": rates,
-        })
+        entity.update({"height": height, "competitors": competitors, "winners": winners, "rates": rates})
         self._db.put(entity)
 
     def get_latest_oracle_block(self):

@@ -32,6 +32,7 @@ def get_sync_head(is_cloud: bool = False):
         db = AlchemyCloudDB()
         head = db.get_sync_head()
     else:
+
         async def f(client):
             return await client.call_once("sync_head")
 
@@ -44,6 +45,7 @@ def get_winners(height: int = None, is_cloud: bool = False):
         db = AlchemyCloudDB()
         winning_entry_hashes = db.get_latest_winners() if height is None else db.get_winners(height)
     else:
+
         async def f(client):
             if height is not None:
                 return await client.call_once("winners", height, True)
@@ -64,6 +66,7 @@ def get_balances(address: str, is_cloud: bool = False):
         db = AlchemyCloudDB()
         balances = db.get_balances(address)
     else:
+
         async def f(client):
             return await client.call_once("balances", address)
 
@@ -86,6 +89,7 @@ def get_rates(height: int = None, is_cloud: bool = False):
         db = AlchemyCloudDB()
         rates = db.get_latest_rates() if height is None else db.get_rates(height)
     else:
+
         async def f(client):
             if height is not None:
                 return await client.call_once("rates", height, True)
