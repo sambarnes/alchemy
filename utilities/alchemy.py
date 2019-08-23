@@ -4,7 +4,7 @@ import click
 import factom
 import json
 from factom import Factomd, FactomWalletd
-from factom_keys.ec import ECAddress, ECPrivateKey
+from factom_keys.ec import ECAddress
 from factom_keys.fct import FactoidAddress, FactoidPrivateKey
 
 import alchemy.main
@@ -13,32 +13,9 @@ import alchemy.rpc
 import alchemy.transactions.models
 
 
-HEADER = r"""
-      o       
-       o      
-     ___      
-     | |      
-     | |      
-     |o|             _      _                          
-    .' '.       __ _| | ___| |__   ___ _ __ ___  _   _ 
-   /  o  \     / _` | |/ __| '_ \ / _ \ '_ ` _ \| | | |
-  :____o__:   | (_| | | (__| | | |  __/ | | | | | |_| |
-  '._____.'    \__,_|_|\___|_| |_|\___|_| |_| |_|\__, |
-                                                 |___/ 
-"""
-
-
 @click.group()
 def main():
     pass
-
-
-@main.command()
-@click.option("--testnet", is_flag=True)
-def run(testnet):
-    """Main entry point for the node"""
-    print(HEADER)
-    alchemy.main.run(testnet, is_cloud=False)
 
 
 @main.command()
@@ -218,8 +195,13 @@ def send(amount, from_ticker, address, to, ec_address, dry_run):
 
 @main.command()
 @click.confirmation_option(prompt="Are you sure you want to reset the database?")
-def reset():
+@click.option("--node-type", default="local", type=click.Choice(["local", "cloud"]))
+def reset(node_type):
     """Delete the current alchemy database"""
+    is_cloud = node_type == "cloud"
+    if is_cloud:
+        print("Not yet implemented. Exiting...")
+        return
     import os
     import shutil
 
@@ -234,10 +216,12 @@ def reset():
 
 
 @main.command()
-def get_sync_head():
+@click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
+def get_sync_head(node_type):
     """Get the highest block parsed"""
+    is_cloud = node_type == "cloud"
     try:
-        result = alchemy.rpc.get_sync_head()
+        result = alchemy.rpc.get_sync_head(is_cloud)
     except ConnectionRefusedError:
         print("Error: failed to make request, ensure alchemy is running")
         return
@@ -246,10 +230,12 @@ def get_sync_head():
 
 @main.command()
 @click.argument("height", required=False, type=int)
-def get_winners(height):
+@click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
+def get_winners(height, node_type):
     """Get winning records at the given block height"""
+    is_cloud = node_type == "cloud"
     try:
-        result = alchemy.rpc.get_winners(height)
+        result = alchemy.rpc.get_winners(height, is_cloud)
     except ConnectionRefusedError:
         print("Error: failed to make request, ensure alchemy is running")
         return
@@ -260,10 +246,12 @@ def get_winners(height):
 @click.argument("address", type=str)
 @click.option("--testnet", is_flag=True)
 @click.option("--human", is_flag=True)
-def get_balances(address, testnet, human):
+@click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
+def get_balances(address, testnet, human, node_type):
     """Get a list of all balances for the given address"""
+    is_cloud = node_type == "cloud"
     try:
-        result = alchemy.rpc.get_balances(address)
+        result = alchemy.rpc.get_balances(address, is_cloud)
     except ConnectionRefusedError:
         print("Error: failed to make request, ensure alchemy is running")
         return
@@ -274,10 +262,12 @@ def get_balances(address, testnet, human):
 
 @main.command()
 @click.argument("height", type=int)
-def get_rates(height):
+@click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
+def get_rates(height, node_type):
     """Get a list of conversion rates for the given block"""
+    is_cloud = node_type == "cloud"
     try:
-        result = alchemy.rpc.get_rates(height)
+        result = alchemy.rpc.get_rates(height, is_cloud)
     except ConnectionRefusedError:
         print("Error: failed to make request, ensure alchemy is running")
         return
