@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.7
 
 import click
-import alchemy.main
+
+import main
 
 
 HEADER = r"""
@@ -26,7 +27,7 @@ def main(node_type, testnet):
     """Main entry point for the node"""
     print(HEADER)
     is_cloud = node_type == "cloud"
-    alchemy.main.run(testnet, is_cloud)
+    main.run(testnet, is_cloud)
 
 
 if __name__ == "__main__":
