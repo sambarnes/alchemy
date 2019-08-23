@@ -36,7 +36,7 @@ async def run_protocol(database: AlchemyDB, is_testnet: bool = False):
 
 def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: AlchemyDB, is_testnet: bool = False):
     # 1) Grade OPRs
-    previous_winners_full = database.get_highest_winners()
+    previous_winners_full = database.get_latest_winners()
     previous_winners = (
         [entry_hash[:8].hex() for entry_hash in previous_winners_full]
         if len(previous_winners_full) != 0
@@ -44,11 +44,10 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
     )
     prices, winners, top50 = alchemy.grading.process_block(height, previous_winners, factomd, lxr, is_testnet)
     if winners is not None:
-        # Update winners in database. Calculate PNT reward deltas. Export winning prices to csv
+        # Update database. Calculate PNT reward deltas. Export winning prices to csv
+        competing_entry_hashes = [record.entry_hash for record in top50]
         winning_entry_hashes = [record.entry_hash for record in winners[:10]]
-        database.put_winners(height, winning_entry_hashes)
-        database.put_winners_head(height)
-        database.put_rates(height, winners[0].asset_estimates)
+        database.put_oracle_block(height, competing_entry_hashes, winning_entry_hashes, winners[0].asset_estimates)
 
         pnt_deltas = defaultdict(float)
         for i, record in enumerate(winners[:10]):
@@ -67,8 +66,7 @@ def execute_block(height: int, factomd: Factomd, lxr: pylxr.LXR, database: Alche
         winners_description = [x[:8].hex() for x in winning_entry_hashes]
         print(f"{color.GREEN}Graded OPR block {height} (winners: {winners_description}){color.RESET}")
     else:
-        winners_head = database.get_winners_head()
-        rates = database.get_rates(winners_head) if winners_head != -1 else {}
+        rates = database.get_latest_rates()
         print(f"{color.RED}Skipped OPR block {height} (<10 records passed grading){color.RESET}")
 
     # 2) Find new FCT --> pFCT burns
@@ -106,4 +104,4 @@ def run(is_testnet: bool, is_cloud: bool):
     except (KeyboardInterrupt, SystemExit):
         if not is_cloud:
             server.close()
-        loop.run_until_complete(server.wait_closed())
+            loop.run_until_complete(server.wait_closed())

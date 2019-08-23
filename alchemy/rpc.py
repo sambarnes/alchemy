@@ -14,7 +14,7 @@ from alchemy.database import AlchemyDB
 def register_database_functions(database: AlchemyDB):
     aiorpc.register("sync_head", database.get_sync_head)
     aiorpc.register("winners", database.get_winners)
-    aiorpc.register("latest-winners", database.get_highest_winners)
+    aiorpc.register("latest-winners", database.get_latest_winners)
     aiorpc.register("balances", database.get_balances)
     aiorpc.register("rates", database.get_rates)
 
