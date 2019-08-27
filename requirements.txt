@@ -3,6 +3,7 @@ colorama
 factom-api
 factom-keys
 google-cloud-datastore
+google-cloud-tasks
 numpy
 pandas
 plotly

@@ -13,11 +13,13 @@ from alchemy.database import AlchemyDB, AlchemyCloudDB
 
 def register_database_functions(database: AlchemyDB):
     aiorpc.register("sync_head", database.get_sync_head)
+    aiorpc.register("oracle_block", database.get_oracle_block)
+    aiorpc.register("latest_oracle_block", database.get_latest_oracle_block())
     aiorpc.register("winners", database.get_winners)
-    aiorpc.register("latest-winners", database.get_latest_winners)
+    aiorpc.register("latest_winners", database.get_latest_winners)
     aiorpc.register("balances", database.get_balances)
     aiorpc.register("rates", database.get_rates)
-    aiorpc.register("latest-rates", database.get_latest_rates)
+    aiorpc.register("latest_rates", database.get_latest_rates)
 
 
 def _make_call(coro):
@@ -40,16 +42,32 @@ def get_sync_head(is_cloud: bool = False):
     return {"sync_head": head}
 
 
+def get_oracle_block(height: int = None, is_cloud: bool = False):
+    if is_cloud:
+        db = AlchemyCloudDB()
+        block = db.get_latest_oracle_block(True) if height is None else db.get_oracle_block(height, True)
+    else:
+
+        async def f(client):
+            if height is not None:
+                return await client.call_once("oracle_block", height, True)
+            return await client.call_once("latest_oracle_block", True)
+
+        block = _make_call(f)
+
+    return {"oracle_block": block}
+
+
 def get_winners(height: int = None, is_cloud: bool = False):
     if is_cloud:
         db = AlchemyCloudDB()
-        winning_entry_hashes = db.get_latest_winners() if height is None else db.get_winners(height)
+        winning_entry_hashes = db.get_latest_winners(True) if height is None else db.get_winners(height, True)
     else:
 
         async def f(client):
             if height is not None:
                 return await client.call_once("winners", height, True)
-            return await client.call_once("latest-winners", True)
+            return await client.call_once("latest_winners", True)
 
         winning_entry_hashes = _make_call(f)
 
@@ -93,7 +111,7 @@ def get_rates(height: int = None, is_cloud: bool = False):
         async def f(client):
             if height is not None:
                 return await client.call_once("rates", height, True)
-            return await client.call_once("latest-rates", True)
+            return await client.call_once("latest_rates", True)
 
         rates = _make_call(f)
     return {"rates": rates}

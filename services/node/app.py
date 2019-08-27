@@ -23,7 +23,7 @@ HEADER = r"""
 @click.command()
 @click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
 @click.option("--testnet", is_flag=True)
-def main(node_type, testnet):
+def run(node_type, testnet):
     """Main entry point for the node"""
     print(HEADER)
     is_cloud = node_type == "cloud"
@@ -31,4 +31,4 @@ def main(node_type, testnet):
 
 
 if __name__ == "__main__":
-    main()
+    run()

@@ -7,7 +7,6 @@ from factom import Factomd, FactomWalletd
 from factom_keys.ec import ECAddress
 from factom_keys.fct import FactoidAddress, FactoidPrivateKey
 
-import alchemy.main
 import alchemy.consts as consts
 import alchemy.rpc
 import alchemy.transactions.models
@@ -222,6 +221,20 @@ def get_sync_head(node_type):
     is_cloud = node_type == "cloud"
     try:
         result = alchemy.rpc.get_sync_head(is_cloud)
+    except ConnectionRefusedError:
+        print("Error: failed to make request, ensure alchemy is running")
+        return
+    print(json.dumps(result))
+
+
+@main.command()
+@click.argument("height", required=False, type=int)
+@click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
+def get_oracle_block(height, node_type):
+    """Get the oracle block (competitors, winners, conversion rates) at the given height"""
+    is_cloud = node_type == "cloud"
+    try:
+        result = alchemy.rpc.get_oracle_block(height, is_cloud)
     except ConnectionRefusedError:
         print("Error: failed to make request, ensure alchemy is running")
         return
