@@ -274,7 +274,7 @@ def get_balances(address, testnet, human, node_type):
 
 
 @main.command()
-@click.argument("height", type=int)
+@click.argument("height", required=False, type=int)
 @click.option("--node-type", default="cloud", type=click.Choice(["local", "cloud"]))
 def get_rates(height, node_type):
     """Get a list of conversion rates for the given block"""
